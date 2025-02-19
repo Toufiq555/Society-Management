@@ -41,6 +41,7 @@ server/node_modules/
 MyProject/node_modules/
 MyProject/android/
 admin-panel/node_modules/
+server/.env
 npm-debug.log
 yarn-error.log
 
