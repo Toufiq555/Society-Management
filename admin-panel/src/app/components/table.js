@@ -1,3 +1,5 @@
+"use client";
+
 export default function TableComponent({ headers, data, onDelete }) {
   return (
     <table

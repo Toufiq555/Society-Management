@@ -33,6 +33,7 @@ import Helpdesk from './main/helpdesk';
 import AddComplaint from './main/addcomplaint';
 import PrivacyPolicy from './main/policy';
 import {AuthContext} from '../../context/authContext';
+import MessageScreen from './main/messageScreen';
 
 const Stack = createStackNavigator();
 
@@ -177,6 +178,11 @@ const AppNavigator: React.FC = () => {
           <Stack.Screen name="Getsupport" component={Getsupport} />
           <Stack.Screen name="Terms" component={Terms} />
           <Stack.Screen name="Policy" component={PrivacyPolicy} />
+          <Stack.Screen
+            name="MessageScreen"
+            component={MessageScreen}
+            options={{headerShown: false}}
+          />
         </>
       ) : (
         <>

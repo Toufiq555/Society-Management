@@ -15,8 +15,16 @@ export default function MembersPage() {
     "Phone",
     "Building",
     "Flat No.",
+    "Ownership",
+    "Approvel",
     "Actions",
   ];
+
+  const dropdownFields = {
+    Role: ["Member", "Admin", "Committee"],
+    Ownership: ["Owner", "Tenant"],
+    Approvel: ["Yes", "No"],
+  };
 
   const handleAddData = (newData) => {
     setTableData([...tableData, { ...newData, id: Date.now() }]);
@@ -112,6 +120,7 @@ export default function MembersPage() {
           onClose={() => setIsModalOpen(false)}
           onSubmit={handleAddData}
           headers={headers}
+          dropdownFields={dropdownFields}
         />
       </div>
     </div>
