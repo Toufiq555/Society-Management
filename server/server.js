@@ -4,6 +4,10 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const colors = require("colors");
 const morgan = require("morgan");
+const http = require("http");
+const { Server } = require("socket.io");
+const connectDB = require("./config/db");
+const chatRoutes = require("./routes/chatRoutes");
 
 // dotenv configuration
 dotenv.config();

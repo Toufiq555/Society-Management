@@ -1,7 +1,13 @@
 "use client";
 import { useState } from "react";
 
-export default function ModalComponent({ isOpen, onClose, onSubmit, headers }) {
+export default function ModalComponent({
+  isOpen,
+  onClose,
+  onSubmit,
+  headers,
+  dropdownFields,
+}) {
   const [formData, setFormData] = useState(
     headers
       .filter((header) => header !== "Actions")
@@ -39,23 +45,43 @@ export default function ModalComponent({ isOpen, onClose, onSubmit, headers }) {
         role="dialog"
         aria-labelledby="modal-title"
       >
-        <h2>Add New Item</h2>
+        <h2>Add Item</h2>
         <form onSubmit={handleSubmit}>
           {headers
             .filter((header) => header !== "Actions")
-            .map((header, index) => (
-              <div key={index} style={{ margin: "10px 0" }}>
-                <label>{header}:</label>
-                <input
-                  type="text"
-                  name={header.toLowerCase()}
-                  value={formData[header.toLowerCase()]}
-                  onChange={handleChange}
-                  required
-                  style={modalStyles.input}
-                />
-              </div>
-            ))}
+            .map((header, index) => {
+              const fieldName = header.toLowerCase();
+              return (
+                <div key={index} style={{ margin: "10px 0" }}>
+                  <label>{header}:</label>
+                  {dropdownFields[fieldName] ? (
+                    <select
+                      name={fieldName}
+                      value={formData[fieldName]}
+                      onChange={handleChange}
+                      required
+                      style={modalStyles.input}
+                    >
+                      <option value="">Select {header}</option>
+                      {dropdownFields[fieldName].map((option, idx) => (
+                        <option key={idx} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      name={fieldName}
+                      value={formData[fieldName]}
+                      onChange={handleChange}
+                      required
+                      style={modalStyles.input}
+                    />
+                  )}
+                </div>
+              );
+            })}
           <button type="submit" style={modalStyles.button}>
             Add
           </button>
