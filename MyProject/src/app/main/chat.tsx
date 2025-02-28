@@ -1,3 +1,7 @@
+import {useNavigation, NavigationProp} from '@react-navigation/native';
+type StackParamList = {
+  MessageScreen: {userName: string};
+};
 import MessageCard from '../../components/messagecard';
 import imagePaths from '../../constant/imagePaths';
 import React, {useState} from 'react';
@@ -9,6 +13,7 @@ import {
   FlatList,
   Image,
   SectionList,
+  Alert,
 } from 'react-native';
 
 // Dummy data for members
@@ -101,20 +106,25 @@ const groupedMembers = [
   },
 ];
 
-// Chat Screen Component
 const ChatScreen = () => {
+  const navigation = useNavigation<NavigationProp<StackParamList>>();
   return (
     <FlatList
       data={chatData}
       keyExtractor={item => item.name}
       renderItem={({item}) => (
-        <MessageCard
-          name={item.name}
-          message={item.message}
-          image={item.image}
-          count={item.messageCount}
-          time={item.time}
-        />
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate('MessageScreen', {userName: item.name})
+          }>
+          <MessageCard
+            name={item.name}
+            message={item.message}
+            image={item.image}
+            count={item.messageCount}
+            time={item.time}
+          />
+        </TouchableOpacity>
       )}
     />
   );
@@ -122,9 +132,7 @@ const ChatScreen = () => {
 
 // Resident Screen Component
 const ResidentScreen = () => {
-  function alert(arg0: string): void {
-    throw new Error('Function not implemented.');
-  }
+  const navigation = useNavigation<NavigationProp<StackParamList>>();
 
   return (
     <SectionList
@@ -144,13 +152,14 @@ const ResidentScreen = () => {
           </View>
           <View style={styles.iconContainer}>
             <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => alert(`Calling ${item.name}`)}>
+              onPress={() => Alert.alert(`Calling ${item.name}`)}>
               <Text style={styles.iconText}>📞</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.iconButton}
-              onPress={() => alert(`Chat with ${item.name}`)}>
+              onPress={() =>
+                navigation.navigate('MessageScreen', {userName: item.name})
+              }>
               <Text style={styles.iconText}>💬</Text>
             </TouchableOpacity>
           </View>
