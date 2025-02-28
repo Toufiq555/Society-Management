@@ -14,9 +14,9 @@ type Role = 'Member' | 'Admin' | 'Committee';
 
 interface User {
   name: string;
-  roles: Role[];
+
   email: string;
-  phoneNumber: string;
+
   building: string;
   flatNumber: string;
   society: string;
@@ -24,39 +24,6 @@ interface User {
   phoneNumber: string; // Added phoneNumber
   roles: Role[];
 }
-
-const userData: User[] = [
-  {
-    id: '1',
-    name: 'Savannah Nguyen',
-    building: 'Block A-422',
-    flatNumber: '422',
-    society: 'SevenGen society',
-    profilePicture: 'https://via.placeholder.com/150',
-    phoneNumber: '123-456-7890', // Added phone number
-    roles: ['Member', 'Admin', 'Committee'],
-  },
-  {
-    id: '2',
-    name: 'Cameron Williamson',
-    building: 'Block B-300',
-    flatNumber: '300',
-    society: 'SevenGen society',
-    profilePicture: 'https://via.placeholder.com/150',
-    phoneNumber: '987-654-3210',
-    roles: ['Member'],
-  },
-  {
-    id: '3',
-    name: 'Brooklyn Simmons',
-    building: 'Block C-303',
-    flatNumber: '303',
-    society: 'SevenGen society',
-    profilePicture: 'https://via.placeholder.com/150',
-    phoneNumber: '555-123-4567',
-    roles: ['Member', 'Committee'],
-  },
-];
 
 const Members = () => {
   const [activeTab, setActiveTab] = useState<Role>('Member');
