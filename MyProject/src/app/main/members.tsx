@@ -37,7 +37,7 @@ const userData: User[] = [
   {
     id: '2',
     name: 'Cameron Williamson',
-    building: 'Block B-300',
+    building: ' B-300',
     flatNumber: '300',
     society: 'SevenGen society',
     profilePicture: 'https://via.placeholder.com/150',
@@ -47,7 +47,7 @@ const userData: User[] = [
   {
     id: '3',
     name: 'Brooklyn Simmons',
-    building: 'Block C-303',
+    building: ' C-303',
     flatNumber: '303',
     society: 'SevenGen society',
     profilePicture: 'https://via.placeholder.com/150',
@@ -81,7 +81,7 @@ const Members = () => {
             <View>
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.details}>
-                {item.building} | {item.society}
+                {item.building} | {item.phoneNumber}
               </Text>
             </View>
           </TouchableOpacity>
