@@ -1,32 +1,29 @@
-// entry point for server side code
-
+// Entry point for server-side code
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const colors = require("colors");
 const morgan = require("morgan");
-const connectDB = require("./config/db");
+const db = require("./config/db"); // ✅ MySQL Connection Import
 
-//dotenv config
+// dotenv configuration
 dotenv.config();
 
-//MongoDB connection
-connectDB();
-
-// Rest object
+// Initialize Express app
 const app = express();
 
 // Middleware
-app.use(cors());
-app.use(express.json());
-app.use(morgan("dev"));
+app.use(cors()); // Enable CORS for frontend access
+app.use(express.json()); // Parse JSON request body
+app.use(morgan("dev")); // Logging middleware
 
 // Routes
-app.use("/api/v1/auth", require("./routes/userRoutes"));
-//PORT
+app.use("/api/v1/members", require("./routes/members.js")); // ✅ MySQL Routes
+
+// Define PORT
 const PORT = process.env.PORT || 8080;
 
-//listen
+// Start server
 app.listen(PORT, () => {
-  console.log(`Server Running ${PORT}`.bgGreen.white);
+  console.log(`🚀 Server Running on PORT ${PORT}`.bgGreen.white);
 });
