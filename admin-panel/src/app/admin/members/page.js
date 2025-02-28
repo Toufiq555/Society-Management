@@ -8,7 +8,6 @@ export default function MembersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tableData, setTableData] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-<<<<<<< HEAD
   const headers = ["Name", "Role", "Email", "Phone", "Building", "Flat_no", "Actions"];
 
   useEffect(() => {
@@ -30,28 +29,6 @@ export default function MembersPage() {
       console.error("Error fetching members:", error);
       setTableData([]); // Default to empty array if there's an error
     }
-=======
-  const headers = [
-    "Name",
-    "Role",
-    "Email",
-    "Phone",
-    "Building",
-    "Flat No.",
-    "Ownership",
-    "Approvel",
-    "Actions",
-  ];
-
-  const dropdownFields = {
-    Role: ["Member", "Admin", "Committee"],
-    Ownership: ["Owner", "Tenant"],
-    Approvel: ["Yes", "No"],
-  };
-
-  const handleAddData = (newData) => {
-    setTableData([...tableData, { ...newData, id: Date.now() }]);
->>>>>>> ab10bc8f0d28728a775a448dc8f7b52ed3d6bb91
   };
   
   
@@ -130,35 +107,9 @@ export default function MembersPage() {
           Add New
         </button>
       </div>
-<<<<<<< HEAD
       <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", backgroundColor: "#fff", marginTop: "10px", boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)" }}>
         <TableComponent headers={headers} data={filteredData} onDelete={handleDeleteMembers} />
         <ModalComponent isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleAddData} headers={headers} />
-=======
-
-      <div
-        style={{
-          border: "1px solid #e5e7eb",
-          borderRadius: "8px",
-          backgroundColor: "#fff",
-          marginTop: "10px",
-          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-        }}
-      >
-        <TableComponent
-          headers={headers}
-          data={filteredData}
-          onDelete={handleDeleteMembers}
-        />
-
-        <ModalComponent
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSubmit={handleAddData}
-          headers={headers}
-          dropdownFields={dropdownFields}
-        />
->>>>>>> ab10bc8f0d28728a775a448dc8f7b52ed3d6bb91
       </div>
     </div>
   );
