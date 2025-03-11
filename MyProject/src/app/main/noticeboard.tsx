@@ -1,75 +1,54 @@
-import React from 'react';
-import {View, Text, FlatList, StyleSheet} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 
 interface Notice {
   id: string;
   title: string;
   description: string;
-  postBy: string;
-  date: string;
-  isNew: boolean;
+  // postBy: string;
+  created_at: string;
 }
 
-const notices: Notice[] = [
-  {
-    id: '1',
-    title: 'Announcement',
-    description:
-      'Increasing maintenance to $20 from next month due to security increments',
-    postBy: 'Admin',
-    date: '19 AUG 05 : 30 PM',
-    isNew: true,
-  },
-  {
-    id: '2',
-    title: 'New Year celebration',
-    description:
-      "New year gathering in Seven gen society's hall on 3rd November",
-    postBy: 'Admin',
-    date: '20 AUG 05 : 30 PM',
-    isNew: true,
-  },
-  {
-    id: '3',
-    title: 'Christmas party',
-    description:
-      'It is hereby notified that Christmas will be celebrated on 23rd December, 2018 at our Society auditorium.',
-    postBy: 'Admin',
-    date: '22 DEC 08 : 30 PM',
-    isNew: false,
-  },
-  {
-    id: '4',
-    title: 'New Year celebration',
-    description:
-      "New year gathering in Seven gen society's hall on 3rd November",
-    postBy: 'Admin',
-    date: '20 AUG 05 : 30 PM',
-    isNew: false,
-  },
-
-  {
-    id: '5',
-    title: 'New Year celebration',
-    description:
-      "New year gathering in Seven gen society's hall on 3rd November",
-    postBy: 'Admin',
-    date: '20 AUG 05 : 30 PM',
-    isNew: false,
-  },
-
-  {
-    id: '6',
-    title: 'New Year celebration',
-    description:
-      "New year gathering in Seven gen society's hall on 3rd November",
-    postBy: 'Admin',
-    date: '20 AUG 05 : 30 PM',
-    isNew: false,
-  },
-];
-
 const NoticeBoard: React.FC = () => {
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  //fetch notice data
+  const fetchNotices = async () => {
+    try {
+      const response = await fetch(
+        'http://192.168.1.10:8080/api/v1/get-notice',
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        setNotices(data.notices);
+      } else {
+        console.error('Error fetching notices:', data.message);
+      }
+    } catch (error) {
+      console.error('Fetch error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotices();
+  }, []);
+
+  if (loading) {
+    return (
+      <ActivityIndicator size="large" color="#007aff" style={styles.loader} />
+    );
+  }
+
   return (
     <FlatList
       data={notices}
@@ -78,11 +57,11 @@ const NoticeBoard: React.FC = () => {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.title}>{item.title}</Text>
-            {item.isNew && <Text style={styles.newTag}>New</Text>}
+            {/* {item.isNew && <Text style={styles.newTag}>New</Text>} */}
           </View>
           <Text style={styles.description}>{item.description}</Text>
           <Text style={styles.footer}>
-            Post by :{item.postBy} {item.date} {/* space*/}
+            Post by : {item.created_at} {/* space*/}
           </Text>
         </View>
       )}
@@ -134,6 +113,11 @@ const styles = StyleSheet.create({
     borderTopColor: '#eee',
     paddingTop: 3,
     justifyContent: 'space-between',
+  },
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

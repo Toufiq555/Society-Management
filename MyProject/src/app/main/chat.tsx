@@ -4,7 +4,7 @@ type StackParamList = {
 };
 import MessageCard from '../../components/messagecard';
 import imagePaths from '../../constant/imagePaths';
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -14,56 +14,9 @@ import {
   Image,
   SectionList,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
-
-// Dummy data for members
-const userData = [
-  {
-    id: '1',
-    name: 'Savannah Nguyen',
-    building: 'Block A-422',
-    flatNumber: '422',
-    society: 'SevenGen society',
-    profilePicture: 'https://via.placeholder.com/150',
-    ownershipStatus: 'Owner',
-  },
-  {
-    id: '2',
-    name: 'Cameron Williamson',
-    building: 'Block B-300',
-    flatNumber: '300',
-    society: 'SevenGen society',
-    profilePicture: 'https://via.placeholder.com/150',
-    ownershipStatus: 'Rented',
-  },
-  {
-    id: '3',
-    name: 'Brooklyn Simmons',
-    building: 'Block C-303',
-    flatNumber: '303',
-    society: 'SevenGen society',
-    profilePicture: 'https://via.placeholder.com/150',
-    ownershipStatus: 'Owner',
-  },
-  {
-    id: '4',
-    name: 'Liam Rodriguez',
-    building: 'Block A-101',
-    flatNumber: '101',
-    society: 'SevenGen society',
-    profilePicture: 'https://via.placeholder.com/150',
-    ownershipStatus: 'Owner',
-  },
-  {
-    id: '5',
-    name: 'Emma Watson',
-    building: 'Block B-202',
-    flatNumber: '202',
-    society: 'SevenGen society',
-    profilePicture: 'https://via.placeholder.com/150',
-    ownershipStatus: 'Rented',
-  },
-];
+import Icon from 'react-native-vector-icons/Ionicons';
 
 // Chat data
 const chatData = [
@@ -87,22 +40,6 @@ const chatData = [
     message: 'hello',
     time: '6:45 pm',
     messageCount: 0,
-  },
-];
-
-// Group members by their blocks
-const groupedMembers = [
-  {
-    title: 'Block A',
-    data: userData.filter(user => user.building.includes('Block A')),
-  },
-  {
-    title: 'Block B',
-    data: userData.filter(user => user.building.includes('Block B')),
-  },
-  {
-    title: 'Block C',
-    data: userData.filter(user => user.building.includes('Block C')),
   },
 ];
 
@@ -131,48 +68,114 @@ const ChatScreen = () => {
 };
 
 // Resident Screen Component
-const ResidentScreen = () => {
-  const navigation = useNavigation<NavigationProp<StackParamList>>();
-
-  return (
-    <SectionList
-      sections={groupedMembers}
-      keyExtractor={item => item.id}
-      renderItem={({item}) => (
-        <View style={styles.card}>
-          <Image
-            source={{uri: item.profilePicture}}
-            style={styles.profileImage}
-          />
-          <View style={styles.memberInfo}>
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.details}>
-              {item.building} | {item.ownershipStatus}
-            </Text>
-          </View>
-          <View style={styles.iconContainer}>
-            <TouchableOpacity
-              onPress={() => Alert.alert(`Calling ${item.name}`)}>
-              <Text style={styles.iconText}>📞</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() =>
-                navigation.navigate('MessageScreen', {userName: item.name})
-              }>
-              <Text style={styles.iconText}>💬</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-      renderSectionHeader={({section: {title}}) => (
-        <Text style={styles.blockTitle}>{title}</Text>
-      )}
-      contentContainerStyle={styles.listContainer}
-    />
-  );
+type Member = {
+  id: string;
+  name: string;
+  block: string;
+  flat_no: string;
+  phone: string;
+  role: string;
 };
 
+const ResidentScreen = () => {
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
+
+  // ✅ API Call to Fetch Members
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const response = await fetch('http://192.168.1.5:8080/api/v1/members'); // 🔹 Replace with actual API URL
+        const jsonData = await response.json();
+        if (jsonData.success) {
+          setMembers(jsonData.members); // ✅ Save API data
+        } else {
+          Alert.alert('Error', 'Failed to load members');
+        }
+      } catch (error) {
+        console.error('Error fetching members:', error);
+        Alert.alert('Error', 'Something went wrong');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMembers();
+  }, []);
+
+  // ✅ Extract unique blocks
+  const uniqueBlocks = [...new Set(members.map(member => member.block))].sort();
+
+  // ✅ Filter members based on selected block
+  const filteredMembers = selectedBlock
+    ? members.filter(member => member.block === selectedBlock)
+    : [];
+
+  // ✅ Show loader while fetching data
+  if (loading) {
+    return (
+      <ActivityIndicator size="large" color="#005bb5" style={{marginTop: 20}} />
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {/* 🔹 Block Selection (Only show if no block is selected) */}
+      {!selectedBlock ? (
+        <View style={styles.blockContainer}>
+          {uniqueBlocks.map(block => (
+            <TouchableOpacity
+              key={block}
+              style={styles.blockButton}
+              onPress={() => setSelectedBlock(block)}>
+              <Text style={styles.blockText}>Block {block}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : (
+        // 🔹 Show only selected block with a back button
+        <View style={styles.selectedBlockContainer}>
+          <TouchableOpacity
+            onPress={() => setSelectedBlock(null)}
+            style={styles.backButton}>
+            <Icon name="arrow-back" size={22} color="#333" />
+            {/* <Text style={styles.backText}>Back</Text> */}
+          </TouchableOpacity>
+          <Text style={styles.selectedBlockText}>Block {selectedBlock}</Text>
+        </View>
+      )}
+
+      {/* 🔹 Show Selected Block's Members */}
+      {selectedBlock ? (
+        filteredMembers.length > 0 ? (
+          <FlatList
+            data={filteredMembers}
+            keyExtractor={item => item.id.toString()}
+            renderItem={({item}) => (
+              <View style={styles.card}>
+                <Text style={styles.name}>
+                  {item.name} ({item.role})
+                </Text>
+                <Text style={styles.details}>
+                  Flat: {item.flat_no} | {item.phone}
+                </Text>
+              </View>
+            )}
+          />
+        ) : (
+          <Text style={styles.noMembersText}>
+            No members found in Block {selectedBlock}
+          </Text>
+        )
+      ) : (
+        <Text style={styles.selectText}>
+          Please select a block to view members
+        </Text>
+      )}
+    </View>
+  );
+};
 // Main Chat Component
 const Chat = () => {
   const [activeTab, setActiveTab] = useState('chat');
@@ -237,7 +240,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#e0e0e0',
+    backgroundColor: 'white',
     padding: 10,
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
@@ -271,16 +274,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#fff',
-    marginVertical: 8,
     padding: 15,
     borderRadius: 10,
+    marginVertical: 8,
     elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
   },
   profileImage: {
     width: 60,
@@ -320,6 +318,57 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingHorizontal: 10,
   },
+  blockContainer: {
+    flexDirection: 'column',
+    flexWrap: 'wrap',
+    marginBottom: 15,
+    marginTop: 10,
+    alignSelf: 'center',
+    justifyContent: 'center',
+  },
+  blockButton: {
+    backgroundColor: '#ddd',
+    padding: 10,
+    borderRadius: 10,
+    margin: 5,
+  },
+  selectedBlock: {backgroundColor: '#005bb5'},
+  blockText: {fontSize: 16, fontWeight: 'bold', color: '#333'},
+  selectText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 20,
+  },
+  noMembersText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 20,
+    color: 'red',
+  },
+  selectedBlockContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    marginTop: 10,
+  },
+  selectedBlockText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#005bb5',
+    marginTop: 10,
+    padding: 8,
+    backgroundColor: '#ddd',
+    borderRadius: 5,
+  },
+  backButton: {
+    marginTop: 10,
+    padding: 8,
+    backgroundColor: '#ddd',
+    borderRadius: 5,
+  },
+  backText: {fontSize: 16, color: '#333'},
 });
 
 export default Chat;

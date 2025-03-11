@@ -35,7 +35,7 @@ const Intro = () => {
   };
 
   const handleGetStarted = () => {
-    navigation.navigate('Register');
+    navigation.navigate('Login');
   };
 
   return (
