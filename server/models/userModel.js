@@ -1,26 +1,12 @@
-const mongoose = require("mongoose");
+// const { DataTypes } = require("sequelize"); // ✅ Correct import
+// const sequelize = require("../config/db"); // ✅ Use the correct DB instance
 
-const userSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: [true, "please add name "],
-      trim: true,
-    },
-    email: {
-      type: String,
-      required: [true, "please add email "],
-      unique: true,
-      trim: true,
-    },
-    password: {
-      type: String,
-      required: [true, "please add password "],
-      min: 6,
-      max: 20,
-    },
-  },
-  { timestamps: true }
-);
+// const User = sequelize.define("members", {
+//   phone: {
+//     type: DataTypes.STRING,
+//     unique: true,
+//     allowNull: false,
+//   },
+// });
 
-module.exports = mongoose.model("User", userSchema);
+// module.exports = User;

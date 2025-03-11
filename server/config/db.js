@@ -1,23 +1,25 @@
-const mysql = require("mysql2");
+const mysql = require("mysql2/promise");
+const { Sequelize } = require("sequelize");
 const dotenv = require("dotenv");
 
 // ✅ Load .env file
 dotenv.config();
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
 
-const db = mysql.createConnection({
-  host: process.env.DB_HOST, // ✅ `localhost` ko as a string use karein
+// ✅ Use createPool() instead of createConnection()
+const db = mysql.createPool({
+  host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  port: process.env.DB_PORT || 3306, // ✅ Default MySQL port
+  port: process.env.DB_PORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
 });
 
-db.connect((err) => {
-  if (err) {
-    console.error("❌ MySQL Connection Failed:", err);
-  } else {
-    console.log("✅ MySQL Connected Successfully!");
-  }
-});
+console.log("✅ MySQL Connection Pool Created!");
 
 module.exports = db;
