@@ -6,15 +6,18 @@ import {AuthContext} from '../../../context/authContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Setting = () => {
-  const [state, setstate] = useContext(AuthContext);
+  const authContext = useContext(AuthContext); // Ensure it's not null
   const navigation = useNavigation<any>();
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   const handleLogout = async () => {
-    setstate({token: '', user: null});
-    await AsyncStorage.removeItem('@auth');
-    // alert('Logout Sucessfully');
-    navigation.navigate('Login');
+    try {
+      authContext?.setstate?.({token: '', user: null}); // Optional chaining
+      await AsyncStorage.removeItem('@auth');
+      navigation.reset({index: 0, routes: [{name: 'login'}]});
+    } catch (error) {
+      console.error('Logout Error:', error);
+    }
   };
 
   return (

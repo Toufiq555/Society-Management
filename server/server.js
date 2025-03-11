@@ -8,6 +8,10 @@ const http = require("http");
 const { Server } = require("socket.io");
 const connectDB = require("./config/db");
 const chatRoutes = require("./routes/chatRoutes");
+const authRoutes = require("./routes/authRoutes.js");
+const members = require("./routes/members.js");
+const userRoutes = require("./routes/userRoutes.js");
+const noticeRoutes = require("./routes/noticeRoutes.js");
 
 // dotenv configuration
 dotenv.config();
@@ -21,11 +25,11 @@ app.use(express.json()); // Parse JSON request body
 app.use(morgan("dev")); // Logging middleware
 
 // Routes
-app.use("/api/v1/members", require("./routes/members.js")); // ✅ MySQL Routes
-
-// Define PORT
-app.use("/api/v1/auth", require("./routes/userRoutes"));
+app.use("/api/v1/members", members);
+app.use("/api/auth", authRoutes);
+app.use("/api/v1/auth", userRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/v1", noticeRoutes);
 
 // Server Setup
 const server = http.createServer(app);
@@ -81,6 +85,6 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT || 8080;
 
 // Start server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Server Running on PORT ${PORT}`.bgGreen.white);
 });

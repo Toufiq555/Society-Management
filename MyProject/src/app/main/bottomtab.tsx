@@ -29,6 +29,7 @@ const Bottomtab = () => {
         return <Service />;
       case 'Profile':
         return <Profile />;
+
       default:
         return <Home />;
     }

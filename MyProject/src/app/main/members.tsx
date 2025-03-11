@@ -21,7 +21,7 @@ interface User {
   flatNumber: string;
   society: string;
   profilePicture: string;
-  phoneNumber: string; // Added phoneNumber
+  phone: string; // Added phoneNumber
   roles: Role[];
 }
 
@@ -35,7 +35,7 @@ const Members = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://your-api-url/api/v1/members'); // Change to actual API URL
+        const response = await fetch('http://192.168.1.10:8080/api/v1/members'); // Change to actual API URL
         const data = await response.json();
         if (data.success) {
           setUserData(data.members);
@@ -51,13 +51,14 @@ const Members = () => {
   }, []);
 
   const renderContent = () => {
-    const filteredData = userData.filter(user =>
-      user.roles.includes(activeTab),
-    );
+    console.log('Rendering Data:', userData);
+    // const filteredData = userData.filter(user =>
+    //   user.roles.includes(activeTab),
+    // );
 
     return (
       <FlatList
-        data={filteredData}
+        data={userData}
         keyExtractor={(item, index) => index.toString()}
         renderItem={({item}) => (
           <TouchableOpacity
@@ -66,7 +67,7 @@ const Members = () => {
             <View>
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.details}>
-                {item.building} | {item.society}
+                {item.building} | {item.phone}
               </Text>
             </View>
           </TouchableOpacity>
@@ -90,7 +91,7 @@ const Members = () => {
     if (selectedUser) {
       Alert.alert(
         `Calling ${selectedUser.name}`,
-        `Phone: ${selectedUser.phoneNumber}`,
+        `Phone: ${selectedUser.phone}`,
       );
     }
   };
@@ -142,7 +143,7 @@ const Members = () => {
                   Email: {selectedUser.email}
                 </Text>
                 <Text style={styles.modalDetails}>
-                  Phone: {selectedUser.phoneNumber}
+                  Phone: {selectedUser.phone}
                 </Text>
                 <Text style={styles.modalDetails}>
                   Building: {selectedUser.building}
