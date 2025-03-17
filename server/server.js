@@ -6,8 +6,14 @@ const colors = require("colors");
 const morgan = require("morgan");
 const http = require("http");
 const { Server } = require("socket.io");
-const connectDB = require("./config/db");
+const connectDB = require("./config/db.js");
 const chatRoutes = require("./routes/chatRoutes");
+const bodyParser = require("body-parser"); // Import body-parser (important for parsing JSON)
+const members = require("./routes/members.js");
+const userRoutes = require("./routes/userRoutes.js");
+const guestRoutes = require("./routes/guestRoutes.js");
+const DeliveryRoutes = require("./routes/DeliveryRoutes.js")
+
 
 // dotenv configuration
 dotenv.config();
@@ -18,14 +24,18 @@ const app = express();
 // Middleware
 app.use(cors()); // Enable CORS for frontend access
 app.use(express.json()); // Parse JSON request body
+app.use(bodyParser.json()); // Ensure JSON request bodies are parsed properly
 app.use(morgan("dev")); // Logging middleware
+app.use(bodyParser.urlencoded({ extended: true })); // Parse URL-encoded bodies
+// Routes
+app.use("/api/v1/members",members); // ✅ MySQL Routes
+app.use("/api/v1/guests",guestRoutes);
+app.use("/api/v1/Deliveries",DeliveryRoutes);
 
 // Routes
-app.use("/api/v1/members", require("./routes/members.js")); // ✅ MySQL Routes
-
-// Define PORT
-app.use("/api/v1/auth", require("./routes/userRoutes"));
+app.use("/api/v1/auth", userRoutes);
 app.use("/api/chat", chatRoutes);
+
 
 // Server Setup
 const server = http.createServer(app);
@@ -81,6 +91,6 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT || 8080;
 
 // Start server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Server Running on PORT ${PORT}`.bgGreen.white);
 });

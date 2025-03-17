@@ -10,8 +10,9 @@ import Icon from 'react-native-vector-icons/MaterialIcons'; // Import icons
 import Home from './home';
 import Profile from './profile';
 import Service from './service';
-import Security from './security';
+
 import Chat from './chat';
+
 
 const Bottomtab = () => {
   const [activeScreen, setActiveScreen] = useState('Home'); // Track the active screen
@@ -23,8 +24,6 @@ const Bottomtab = () => {
         return <Home />;
       case 'Chat':
         return <Chat />;
-      case 'Security':
-        return <Security />;
       case 'Service':
         return <Service />;
       case 'Profile':
