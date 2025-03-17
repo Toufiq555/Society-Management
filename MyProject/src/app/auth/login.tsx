@@ -2,6 +2,7 @@ import React, {useState, useContext} from 'react';
 import {View, Text, TextInput, TouchableOpacity, Alert} from 'react-native';
 import axios from 'axios';
 import {AuthProvider, AuthContext} from '../../../context/authContext';
+import { API_URL } from "@env";
 
 const LoginScreen = ({navigation}: any) => {
   const [phone, setPhone] = useState('');
@@ -15,7 +16,7 @@ const LoginScreen = ({navigation}: any) => {
 
     try {
       const response = await axios.post(
-        'http://192.168.1.14:8080/api/auth/login',
+        `${API_URL}/api/auth/login`,
         {
           phone,
         },

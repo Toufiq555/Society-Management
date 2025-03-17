@@ -15,6 +15,7 @@ import {
   useRoute,
 } from '@react-navigation/native';
 import {AuthProvider, AuthContext} from '../../../context/authContext';
+import { API_URL } from "@env";
 
 type RouteParams = {
   phone: string;
@@ -40,7 +41,7 @@ const Otp = () => {
 
     try {
       const {data} = await axios.post(
-        'http://192.168.1.14:8080/api/auth/verify-otp',
+        `${API_URL}/api/auth/verify-otp`,
         {phone, otp},
       );
 

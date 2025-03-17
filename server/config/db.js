@@ -2,6 +2,8 @@ const mysql = require("mysql2/promise");
 const { Sequelize } = require("sequelize");
 const dotenv = require("dotenv");
 
+
+
 // ✅ Load .env file
 dotenv.config();
 const accountSid = process.env.TWILIO_ACCOUNT_SID;

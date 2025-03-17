@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { API_URL } from "@env";
 
 interface Notice {
   id: string;
@@ -23,7 +24,7 @@ const NoticeBoard: React.FC = () => {
   const fetchNotices = async () => {
     try {
       const response = await fetch(
-        'http://192.168.1.10:8080/api/v1/get-notice',
+        `${API_URL}/api/v1/get-notice`,
       );
       const data = await response.json();
 

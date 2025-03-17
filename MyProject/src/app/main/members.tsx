@@ -8,6 +8,7 @@ import {
   Modal,
   Alert,
 } from 'react-native';
+import { API_URL } from "@env";
 
 // TypeScript types
 type Role = 'Member' | 'Admin' | 'Committee';
@@ -35,7 +36,7 @@ const Members = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://192.168.1.10:8080/api/v1/members'); // Change to actual API URL
+        const response = await fetch(`${API_URL}/api/v1/members`); // Change to actual API URL
         const data = await response.json();
         if (data.success) {
           setUserData(data.members);

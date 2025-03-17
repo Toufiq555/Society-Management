@@ -6,12 +6,14 @@ const colors = require("colors");
 const morgan = require("morgan");
 const http = require("http");
 const { Server } = require("socket.io");
-const connectDB = require("./config/db");
+const connectDB = require("./config/db.js");
 const chatRoutes = require("./routes/chatRoutes");
-const authRoutes = require("./routes/authRoutes.js");
+const bodyParser = require("body-parser"); // Import body-parser (important for parsing JSON)
 const members = require("./routes/members.js");
 const userRoutes = require("./routes/userRoutes.js");
-const noticeRoutes = require("./routes/noticeRoutes.js");
+const guestRoutes = require("./routes/guestRoutes.js");
+const DeliveryRoutes = require("./routes/DeliveryRoutes.js")
+
 
 // dotenv configuration
 dotenv.config();
@@ -22,14 +24,19 @@ const app = express();
 // Middleware
 app.use(cors()); // Enable CORS for frontend access
 app.use(express.json()); // Parse JSON request body
+app.use(bodyParser.json()); // Ensure JSON request bodies are parsed properly
 app.use(morgan("dev")); // Logging middleware
+app.use(bodyParser.urlencoded({ extended: true })); // Parse URL-encoded bodies
+// Routes
+app.use("/api/v1/members",members); // ✅ MySQL Routes
+app.use("/api/v1/guests",guestRoutes);
+app.use("/api/v1/Deliveries",DeliveryRoutes);
 
 // Routes
-app.use("/api/v1/members", members);
-app.use("/api/auth", authRoutes);
 app.use("/api/v1/auth", userRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/v1", noticeRoutes);
+
 
 // Server Setup
 const server = http.createServer(app);
