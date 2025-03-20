@@ -2,7 +2,8 @@
 #
 .DS_Store
 MyProject/.env
-eMyProject/env.d.ts
+MyProject/env.d.ts
+server/ServiceAccountKey.json
 # Xcode
 #
 build/
