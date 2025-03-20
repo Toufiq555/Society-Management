@@ -1,7 +1,8 @@
 # OSX
 #
 .DS_Store
-
+MyProject/.env
+eMyProject/env.d.ts
 # Xcode
 #
 build/
@@ -33,6 +34,9 @@ local.properties
 .cxx/
 *.keystore
 !debug.keystore
+
+
+
 
 # node.js
 #
