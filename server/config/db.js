@@ -1,7 +1,7 @@
 const mysql = require("mysql2/promise");
 const { Sequelize } = require("sequelize");
 const dotenv = require("dotenv");
-const mysql = require("mysql2");
+
 
 
 // ✅ Load .env file

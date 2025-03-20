@@ -12,8 +12,8 @@ const bodyParser = require("body-parser"); // Import body-parser (important for 
 const members = require("./routes/members.js");
 const userRoutes = require("./routes/userRoutes.js");
 const guestRoutes = require("./routes/guestRoutes.js");
-const DeliveryRoutes = require("./routes/DeliveryRoutes.js")
-
+const DeliveryRoutes = require("./routes/DeliveryRoutes.js");
+const noticeRoutes =require("./routes/noticeRoutes.js")
 
 // dotenv configuration
 dotenv.config();
