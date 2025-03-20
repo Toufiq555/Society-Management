@@ -35,6 +35,7 @@ app.use("/api/v1/Deliveries",DeliveryRoutes);
 // Routes
 app.use("/api/v1/auth", userRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/v1", noticeRoutes);
 
 
 // Server Setup

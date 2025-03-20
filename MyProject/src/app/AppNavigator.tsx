@@ -1,21 +1,19 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { View, Text } from 'react-native';
-import { createStackNavigator } from '@react-navigation/stack';
+import React, {useContext, useEffect, useState} from 'react';
+import {View, Text} from 'react-native';
+import {createStackNavigator} from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AuthContext } from '../../context/authContext';
-
 import Intro from './auth/intro';
-import Register from './auth/register';
 import Login from './auth/login';
 import Otp from './auth/otp';
-
 import bottomtab from './main/bottomtab';
 import Home from './main/home';
 import Chat from './main/chat';
-import Security from './main/security';
-import Service from './main/service';
 import Profile from './main/profile';
+import Security from './main/security';
+import Members from './main/members';
+import Payment from './main/payment';
 import Notification from './main/notification';
+import Service from './main/service';
 import Bookamenities from './main/bookamenities';
 import BookAmenity from './main/bookamenity';
 import Creditcard from './main/creditcard';
@@ -23,8 +21,6 @@ import Debitcard from './main/debitcard';
 import Editprofile from './main/editprofile';
 import Getsupport from './main/getsupport';
 import Language from './main/language';
-import Members from './main/members';
-import Payment from './main/payment';
 import Receipt from './main/receipt';
 import SelectAmenity from './main/selectamenity';
 import Selectpaymentmethod from './main/selectpaymentmethod';
@@ -35,19 +31,13 @@ import NoticeBoard from './main/noticeboard';
 import Helpdesk from './main/helpdesk';
 import AddComplaint from './main/addcomplaint';
 import PrivacyPolicy from './main/policy';
+import {AuthContext} from '../../context/authContext';
 import MessageScreen from './main/messageScreen';
-import AddGuestScreen from './main/Addguest';
-import AddDeliveryScreen from './main/AddDeliveryScreen';
-import VisitorHistory from './main/VisitorHistory';
-import security from './main/security';
 
 const Stack = createStackNavigator();
 
 const AppNavigator: React.FC = () => {
-  // ✅ Move useContext to the top
-  const [state] = useContext(AuthContext);
-
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // Use null for initial state
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -55,12 +45,12 @@ const AppNavigator: React.FC = () => {
       try {
         const data = await AsyncStorage.getItem('@auth');
         const loginData = data ? JSON.parse(data) : null;
-        setIsAuthenticated(!!loginData?.token);
+        setIsAuthenticated(!!loginData?.token); // Check if token exists
       } catch (error) {
         console.error('Error checking auth status:', error);
         setIsAuthenticated(false);
       } finally {
-        setLoading(false);
+        setLoading(false); // Ensure loading is set to false after the check
       }
     };
     checkAuthStatus();
@@ -68,17 +58,19 @@ const AppNavigator: React.FC = () => {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
         <Text>Loading...</Text>
       </View>
     );
   }
-
+  const [state] = useContext(AuthContext);
+  //auth condition true false
   const authenticatedUser = state?.user && state?.token;
-
+  const Stack = createStackNavigator();
   return (
     <Stack.Navigator>
-      {authenticatedUser ? (
+      {user ? (
+        // ✅ Agar user login hai, toh main app screens show karein
         <>
           <Stack.Screen
             name="main"
@@ -193,6 +185,7 @@ const AppNavigator: React.FC = () => {
           />
         </>
       ) : (
+        // ✅ Agar user login nahi hai, toh auth screens show karein
         <>
         {/* <Stack.Screen name="secuirty" component={Security} />
         <Stack.Screen name="AddGuest" component={AddGuestScreen} />
@@ -208,11 +201,6 @@ const AppNavigator: React.FC = () => {
           <Stack.Screen
             name="Intro"
             component={Intro}
-            options={{headerShown: false}}
-          />
-          <Stack.Screen
-            name="Register"
-            component={Register}
             options={{headerShown: false}}
           />
           <Stack.Screen

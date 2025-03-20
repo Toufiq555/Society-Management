@@ -2,20 +2,64 @@
 
 import ModalComponent from "@/app/components/modal";
 import TableComponent from "@/app/components/table";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function NoticePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tableData, setTableData] = useState([]);
-  const headers = ["Title", "Content", "Priority", "Posted On", "Actions"];
+  const headers = ["Title", "Description", "Actions"];
 
-  const handleAddData = (newData) => {
-    setTableData([...tableData, { ...newData, id: Date.now() }]);
+  useEffect(() => {
+    fetchNotices();
+  }, []);
+
+  const fetchNotices = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/api/v1/get-notice");
+      const data = await response.json();
+
+      if (data.success && Array.isArray(data.notices)) {
+        setTableData(data.notices); // ✅ Pass only notices array
+      } else {
+        console.error("Invalid API response", data);
+        setTableData([]); // Prevents crashing if response is unexpected
+      }
+    } catch (error) {
+      console.error("Error fetching notice", error);
+      setTableData([]); // Fallback in case of error
+    }
   };
 
-  const handleDeleteNotice = (id) => {
-    setTableData(tableData.filter((item) => item.id !== id));
+  const handleAddData = async (newData) => {
+    try {
+      const response = await fetch("http://localhost:8080/api/v1/add-notice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newData),
+      });
+
+      if (response.ok) {
+        fetchNotices();
+        setIsModalOpen(false);
+      } else {
+        console.error("Error adding notice");
+      }
+    } catch (error) {
+      console.error("Error", error);
+    }
   };
+
+  const handleDeleteNotice = async (id) => {
+    try {
+      await fetch(`http://localhost:8080/api/v1/${id}`, {
+        method: "DELETE",
+      });
+      fetchNotices();
+    } catch (error) {
+      console.error("Error deleting notice", error);
+    }
+  };
+
   return (
     <div>
       <div
@@ -26,14 +70,7 @@ export default function NoticePage() {
           alignItems: "center",
         }}
       >
-        <h2
-          style={{
-            fontSize: "24px",
-            fontWeight: "bold",
-          }}
-        >
-          Notice Board
-        </h2>
+        <h2 style={{ fontSize: "24px", fontWeight: "bold" }}>Notice Board</h2>
 
         <button
           onClick={() => setIsModalOpen(true)}
@@ -77,6 +114,12 @@ export default function NoticePage() {
           onClose={() => setIsModalOpen(false)}
           onSubmit={handleAddData}
           headers={headers}
+          isOtpEnabled={false}
+          validationRules={{
+            title: true,
+            description: true,
+            title: "Add Notice",
+          }}
         />
       </div>
     </div>
