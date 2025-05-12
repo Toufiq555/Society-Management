@@ -9,6 +9,7 @@ export default function ModalComponent({
   dropdownFields = {},
   isOtpEnabled = false,
   validationRules = {},
+  customContent = null, // ✅ Add customContent support
 }) {
   const [formData, setFormData] = useState(
     headers
@@ -24,7 +25,7 @@ export default function ModalComponent({
   const [otpSent, setOtpSent] = useState(false);
   const [resendDisabled, setResendDisabled] = useState(false);
 
-  if (!isOpen) return null; // Don't render if modal is closed
+  if (!isOpen) return null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -33,9 +34,8 @@ export default function ModalComponent({
 
     let newErrors = { ...errors };
 
-    // ✅ Check validationRules before applying validation
     if (validationRules.email && name === "email") {
-      const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       newErrors.email = emailRegex.test(value) ? "" : "Invalid email address";
     }
 
@@ -49,79 +49,69 @@ export default function ModalComponent({
 
   const formatPhoneNumber = (phone) => {
     if (!phone.startsWith("+")) {
-      return `+91${phone}`; // Default India country code, change as needed
+      return `+91${phone}`;
     }
     return phone;
   };
-  //send otp function
 
   const handleSendOtp = async () => {
     const formattedPhone = formatPhoneNumber(formData.phone);
 
     if (!formattedPhone.match(/^\+?[1-9]\d{1,14}$/)) {
-      alert(
-        "Invalid phone number format! Use country code, e.g., +91XXXXXXXXXX"
-      );
+      alert("Invalid phone number format!");
       return;
     }
+
     try {
       const response = await fetch("http://localhost:8080/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: formData.phone }),
       });
-      if (!response.ok) {
-        throw new Error("Failed to send otp");
-      }
+
+      if (!response.ok) throw new Error("Failed to send OTP");
+
       alert("OTP sent successfully");
       setOtpSent(true);
       setResendDisabled(true);
       setTimeout(() => setResendDisabled(false), 30000);
     } catch (error) {
-      console.error("error sending otp:", error);
+      console.error("Error sending OTP:", error);
     }
   };
 
-  //verify otp function
-
   const handleVerifyOtp = async () => {
     try {
-      const response = await fetch(
-        "http://localhost:8080/api/auth/verify-otp",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: formData.phone, otp: otp }),
-        }
-      );
+      const response = await fetch("http://localhost:8080/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: formData.phone, otp }),
+      });
 
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        alert("Invalid OTP. Please try again!");
+        alert("Invalid OTP.");
         return;
       }
-      alert("OTP sent successfully");
+
+      alert("OTP verified successfully");
       setIsOtpVerified(true);
     } catch (error) {
-      console.error("error verifying otp:", error);
+      console.error("Error verifying OTP:", error);
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // ✅ Apply validation only if defined in validationRules
-    if (
-      validationRules.email &&
-      !formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
-    ) {
+    if (validationRules.email && !formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
       alert("Invalid email format!");
       return;
     }
 
     if (validationRules.phone && !formData.phone.match(/^\+?[1-9]\d{9,14}$/)) {
-      alert("Invalid phone format! Use country code.");
+      alert("Invalid phone format!");
       return;
     }
 
@@ -131,15 +121,6 @@ export default function ModalComponent({
     }
 
     onSubmit({ ...formData });
-    setFormData(
-      headers
-        .filter((header) => header !== "Actions " && header !== "Status")
-        .reduce((acc, header) => {
-          acc[header.toLowerCase()] = "";
-          return acc;
-        }, {})
-    );
-
     setIsOtpVerified(false);
     setOtpSent(false);
     onClose();
@@ -147,110 +128,108 @@ export default function ModalComponent({
 
   return (
     <div style={modalStyles.overlay}>
-      <div
-        style={modalStyles.modal}
-        role="dialog"
-        aria-labelledby="modal-title"
-      >
-        <h2 style={modalStyles.h2}>Add Members</h2>
+      <div style={modalStyles.modal} role="dialog">
+        <h2 style={modalStyles.h2}>Add Entry</h2>
         <form onSubmit={handleSubmit}>
-          {headers
-            .filter((header) => header !== "Actions" && header !== "Status")
-            .map((header, index) => {
-              const fieldName = header.toLowerCase();
-              return (
-                <div key={index} style={{ margin: "10px 0" }}>
-                  <label style={{ fontSize: "17px", fontWeight: "bold" }}>
-                    {header}:
-                  </label>
-                  {dropdownFields[fieldName] ? (
-                    <select
-                      name={fieldName}
-                      value={formData[fieldName]}
-                      onChange={handleChange}
-                      required={validationRules[fieldName] || false}
-                      style={modalStyles.input}
-                    >
-                      <option value="">Select {header}</option>
-                      {dropdownFields[fieldName].map((option, idx) => (
-                        <option key={idx} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      name={fieldName}
-                      value={formData[fieldName]}
-                      onChange={handleChange}
-                      required
-                      style={{
-                        ...modalStyles.input,
-                        border:
-                          isOtpEnabled && fieldName === "phone" && isOtpVerified
-                            ? "2px solid green"
-                            : "1px solid #ccc",
-                      }}
-                    />
-                  )}
+          {customContent ? (
+            customContent
+          ) : (
+            headers
+              .filter((header) => header !== "Actions" && header !== "Status")
+              .map((header, index) => {
+                const fieldName = header.toLowerCase();
+                return (
+                  <div key={index} style={{ margin: "10px 0" }}>
+                    <label style={{ fontSize: "17px", fontWeight: "bold" }}>
+                      {header}:
+                    </label>
+                    {dropdownFields[fieldName] ? (
+                      <select
+                        name={fieldName}
+                        value={formData[fieldName]}
+                        onChange={handleChange}
+                        required={validationRules[fieldName] || false}
+                        style={modalStyles.input}
+                      >
+                        <option value="">Select {header}</option>
+                        {dropdownFields[fieldName].map((option, idx) => (
+                          <option key={idx} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        name={fieldName}
+                        value={formData[fieldName]}
+                        onChange={handleChange}
+                        required
+                        style={{
+                          ...modalStyles.input,
+                          border:
+                            isOtpEnabled &&
+                            fieldName === "phone" &&
+                            isOtpVerified
+                              ? "2px solid green"
+                              : "1px solid #ccc",
+                        }}
+                      />
+                    )}
 
-                  {/* ✅ OTP Section (Only for Phone) */}
-                  {isOtpEnabled && fieldName === "phone" && (
-                    <div style={{ marginTop: "10px" }}>
-                      {!otpSent ? (
-                        <button
-                          type="button"
-                          onClick={handleSendOtp}
-                          style={modalStyles.button}
-                        >
-                          Send OTP
-                        </button>
-                      ) : (
-                        !isOtpVerified && ( // ✅ OTP Verified hone ke baad ye hide ho jayega
-                          <>
-                            <input
-                              type="text"
-                              placeholder="Enter OTP"
-                              value={otp}
-                              onChange={(e) => setOtp(e.target.value)}
-                              style={modalStyles.input}
-                            />
-                            <button
-                              type="button"
-                              onClick={handleVerifyOtp}
-                              style={modalStyles.button}
-                            >
-                              Verify OTP
-                            </button>
-
-                            {/* Resend OTP Button */}
-                            <button
-                              type="button"
-                              onClick={handleSendOtp}
-                              disabled={resendDisabled}
-                              style={{
-                                ...modalStyles.button,
-                                backgroundColor: resendDisabled
-                                  ? "gray"
-                                  : "#007bff",
-                              }}
-                            >
-                              Resend OTP
-                            </button>
-                          </>
-                        )
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                    {isOtpEnabled && fieldName === "phone" && (
+                      <div style={{ marginTop: "10px" }}>
+                        {!otpSent ? (
+                          <button
+                            type="button"
+                            onClick={handleSendOtp}
+                            style={modalStyles.button}
+                          >
+                            Send OTP
+                          </button>
+                        ) : (
+                          !isOtpVerified && (
+                            <>
+                              <input
+                                type="text"
+                                placeholder="Enter OTP"
+                                value={otp}
+                                onChange={(e) => setOtp(e.target.value)}
+                                style={modalStyles.input}
+                              />
+                              <button
+                                type="button"
+                                onClick={handleVerifyOtp}
+                                style={modalStyles.button}
+                              >
+                                Verify OTP
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleSendOtp}
+                                disabled={resendDisabled}
+                                style={{
+                                  ...modalStyles.button,
+                                  backgroundColor: resendDisabled
+                                    ? "gray"
+                                    : "#007bff",
+                                }}
+                              >
+                                Resend OTP
+                              </button>
+                            </>
+                          )
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+          )}
           <div style={modalStyles.addcancel}>
             <button type="submit" style={modalStyles.button}>
               Add
             </button>
-
             <button type="button" onClick={onClose} style={modalStyles.button}>
               Cancel
             </button>

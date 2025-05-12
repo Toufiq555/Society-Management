@@ -1,5 +1,3 @@
-
-
 import React, { useState } from "react";
 import { 
   View, Text, TextInput, TouchableOpacity, Modal, FlatList, Button, 

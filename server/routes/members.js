@@ -126,4 +126,23 @@ router.delete("/:id", (req, res) => {
   );
 });
 
+// ✅ Get Member By Phone Number
+router.get('/', async (req, res) => {
+  const { phone } = req.query;  // Get phone from the query parameter
+  try {
+    const result = await db.query('SELECT * FROM members WHERE phone = ?', [phone]);
+    if (result.length > 0) {
+      res.json(result);  // Send user data as response
+    } else {
+      res.status(404).json({ message: 'User not found' });  // Return a 404 if no user is found
+    }
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    res.status(500).json({ message: 'Error fetching data' });
+  }
+});
+
+
+
+
 module.exports = router;

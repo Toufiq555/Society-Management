@@ -1,109 +1,132 @@
-const Chat = require("../models/chatModel");
-const Message = require("../models/message");
-const User = require("../models/userModel");
+// chatController.js
+const messagesModel = require('../models/messageModel');
+const db = require('../config/db');
 
-// ✅ Get all chats of a user (For Chat List)
-const getUserChats = async (req, res) => {
-  try {
-    const userId = req.params.userid;
+// Helper function to get member details
+async function getUserDetails(memberId) {
+    const query = 'SELECT id, name FROM members WHERE id = ?'; // Assuming your members table has 'id' and 'name' columns
+    const [rows] = await db.execute(query, [memberId]);
+    return rows[0];
+}
 
-    const chats = await Chat.find({ members: userId })
-      .populate("members", "name email")
-      .populate({
-        path: "lastMessage",
-        select: "message seen timestamp",
-      })
-      .sort({ updatedAt: -1 });
+// ... (rest of your chatController.js code)
 
-    res.status(200).json({ success: true, chats });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Error fetching chats", error });
-  }
+// Function to get the last message of a chat
+async function getLastMessage(chatId) {
+    const query = 'SELECT content, timestamp FROM messages WHERE chat_id = ? ORDER BY timestamp DESC LIMIT 1';
+    const [rows] = await db.execute(query, [chatId]);
+    return rows[0];
+}
+
+const chatController = {
+    // Get the chats for a user
+    async getChats(req, res) {
+        const userId = req.params.userId;
+
+        try {
+            // 1. Find all conversations where the user is a participant.
+            const query = `
+        SELECT c.id AS chat_id, c.participants
+        FROM conversations c
+        WHERE ? IN (SELECT value FROM JSON_TABLE(c.participants, '$[*]' COLUMNS (value VARCHAR(255) PATH '$')))
+      `;
+            const [conversations] = await db.execute(query, [userId]);
+
+            // 2. For each conversation, get the other participant's info and last message.
+            const chats = await Promise.all(
+                conversations.map(async (conversation) => {
+                    // Get the other participant
+                    const otherUserId = conversation.participants.find(
+                        (p) => p !== userId
+                    ); //simplified for 1-on-1 chat
+                    const otherUser = await getUserDetails(otherUserId);
+
+                    // Get the last message
+                    const lastMessage = await getLastMessage(conversation.chat_id);
+
+                    return {
+                        chat_id: conversation.chat_id,
+                        otherUser,
+                        lastMessage,
+                    };
+                })
+            );
+            res.status(200).json({ success: true, chats });
+        } catch (error) {
+            console.error('Error fetching chats:', error);
+            res.status(500).json({ success: false, message: 'Failed to fetch chats' });
+        }
+    },
+
+    // Get messages for a chat
+    async getMessages(req, res) {
+        const chatId = req.params.chatId;
+        try {
+            const messages = await messagesModel.getMessages(chatId);
+            res.status(200).json({ success: true, messages });
+        } catch (error) {
+            console.error('Error fetching messages:', error);
+            res.status(500).json({ success: false, message: 'Failed to fetch messages' });
+        }
+    },
+
+    // Send a message
+    async sendMessage(req, res) {
+        const { chatId, senderId, content } = req.body;
+        try {
+            const messageId = await messagesModel.createMessage(chatId, senderId, content);
+
+            // TODO: Emit the message via Socket.IO (we'll cover this later)
+            // req.io.to(chatId).emit('newMessage', { chatId, senderId, content, messageId });
+
+            res.status(201).json({ success: true, message: 'Message sent', messageId });
+        } catch (error) {
+            console.error('Error sending message:', error);
+            res.status(500).json({ success: false, message: 'Failed to send message' });
+        }
+    },
+
+    // Start a new chat (or get existing chat)
+    async startChat(req, res) {
+        const { userId1, userId2 } = req.body;
+
+        try {
+            // 1. Check if a chat already exists between these two users
+            const checkQuery = `
+        SELECT id AS chat_id, participants
+        FROM conversations
+        WHERE ? IN (SELECT value FROM JSON_TABLE(participants, '$[*]' COLUMNS (value VARCHAR(255) PATH '$')))
+        AND ? IN (SELECT value FROM JSON_TABLE(participants, '$[*]' COLUMNS (value VARCHAR(255) PATH '$')))
+      `;
+            const [existingChats] = await db.execute(checkQuery, [userId1, userId2]);
+
+            if (existingChats.length > 0) {
+                // Chat exists, return its ID
+                const existingChat = existingChats[0];
+                res.status(200).json({
+                    success: true,
+                    message: 'Chat already exists',
+                    chatId: existingChat.chat_id,
+                });
+                return;
+            }
+
+            // 2. Chat doesn't exist, create a new one
+            const participants = [userId1, userId2];
+            const insertQuery = 'INSERT INTO conversations (participants, created_at, updated_at) VALUES (?, NOW(), NOW())';
+            const [result] = await db.execute(insertQuery, [JSON.stringify(participants)]);
+            const newChatId = result.insertId;
+
+            res.status(201).json({
+                success: true,
+                message: 'New chat created',
+                chatId: newChatId,
+            });
+        } catch (error) {
+            console.error('Error starting chat:', error);
+            res.status(500).json({ success: false, message: 'Failed to start chat' });
+        }
+    },
 };
 
-// ✅ Get messages in a chat
-const getMessages = async (req, res) => {
-  try {
-    const { chatId } = req.params;
-
-    const messages = await Message.find({ chatId }).sort({ timestamp: 1 });
-
-    res.status(200).json({ success: true, messages });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Error fetching messages", error });
-  }
-};
-
-// ✅ Start or Get Chat
-const startChat = async (req, res) => {
-  try {
-    const { sender, receiver } = req.body;
-
-    let chat = await Chat.findOne({ members: { $all: [sender, receiver] } });
-
-    if (!chat) {
-      chat = new Chat({ members: [sender, receiver] });
-      await chat.save();
-    }
-
-    res.status(200).json({ success: true, chat });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Error starting chat", error });
-  }
-};
-
-// ✅ Send a message
-const sendMessage = async (req, res) => {
-  try {
-    const { sender, receiver, message } = req.body;
-
-    let chat = await Chat.findOne({ members: { $all: [sender, receiver] } });
-
-    if (!chat) {
-      chat = new Chat({ members: [sender, receiver] });
-      await chat.save();
-    }
-
-    const newMessage = new Message({ sender, receiver, message });
-    await newMessage.save();
-
-    chat.lastMessage = newMessage._id;
-    await chat.save();
-
-    res
-      .status(201)
-      .json({ success: true, message: "Message sent", newMessage });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Error sending message", error });
-  }
-};
-
-// ✅ Mark messages as read
-const markMessagesAsRead = async (req, res) => {
-  try {
-    const { sender, receiver } = req.body;
-    await Message.updateMany({ sender, receiver, seen: false }, { seen: true });
-
-    res.status(200).json({ success: true, message: "Messages marked as read" });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Error updating messages", error });
-  }
-};
-
-module.exports = {
-  getUserChats,
-  getMessages,
-  startChat,
-  sendMessage,
-  markMessagesAsRead,
-};
+module.exports = chatController;

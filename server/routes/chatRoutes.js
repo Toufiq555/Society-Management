@@ -1,26 +1,18 @@
-const express = require("express");
+// ChatsRoutes.js
+const express = require('express');
+const chatController = require('../controllers/chatController'); // Adjust the path if needed
 const router = express.Router();
-const {
-  getUserChats,
-  getMessages,
-  startChat,
-  sendMessage,
-  markMessagesAsRead,
-} = require("../controllers/chatController");
 
-// Get all chats of a user
-router.get("/:userid", getUserChats);
+// Get all chats for a specific user
+router.get('/chats/:userId', chatController.getChats);
 
-// Start or Get Chat
-router.post("/start", startChat);
+// Get messages for a specific chat
+router.get('/messages/:chatId', chatController.getMessages);
 
-// Get messages between users
-router.get("/:chatId/messages", getMessages);
+// Send a new message (initially via API)
+router.post('/messages/:chatId', chatController.sendMessage);
 
-// Send message
-router.post("/send", sendMessage);
-
-// Mark messages as read
-router.post("/mark-read", markMessagesAsRead);
+// Start a new chat between two users
+router.post('/chats', chatController.startChat);
 
 module.exports = router;

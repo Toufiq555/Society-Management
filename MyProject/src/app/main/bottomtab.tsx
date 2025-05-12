@@ -10,8 +10,9 @@ import Icon from 'react-native-vector-icons/MaterialIcons'; // Import icons
 import Home from './home';
 import Profile from './profile';
 import Service from './service';
-
+//import Security from './security';
 import Chat from './chat';
+
 
 
 const Bottomtab = () => {

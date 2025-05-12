@@ -23,9 +23,11 @@ const NoticeBoard: React.FC = () => {
   //fetch notice data
   const fetchNotices = async () => {
     try {
+      console.log("API",API_URL);
       const response = await fetch(
-        `${API_URL}/api/v1/get-notice`,
+       `${API_URL}/api/v1/get-notice`,
       );
+      console.log("network issue",response);
       const data = await response.json();
 
       if (data.success) {

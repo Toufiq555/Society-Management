@@ -11,7 +11,14 @@ type AuthContextType = {
 };
 
 // ✅ Provide default values to avoid `null` issues
-export const AuthContext = createContext<AuthContextType | null>(null);
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  login: () => {},
+  logout: () => {},
+  loading: true,
+  setstate: () => {},
+});
+
 export const AuthProvider = ({children}: any) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);

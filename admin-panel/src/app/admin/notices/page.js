@@ -50,8 +50,9 @@ export default function NoticePage() {
   };
 
   const handleDeleteNotice = async (id) => {
+    
     try {
-      await fetch(`http://localhost:8080/api/v1/${id}`, {
+      await fetch(`http://localhost:8080/api/v1/notices/${id}`, {
         method: "DELETE",
       });
       fetchNotices();

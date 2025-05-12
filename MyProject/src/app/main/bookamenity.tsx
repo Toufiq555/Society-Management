@@ -1,258 +1,338 @@
-import {useRoute} from '@react-navigation/native';
-import React, {useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
-  Image,
+  ActivityIndicator,
   TouchableOpacity,
-  Platform,
+  Modal,
+  Alert,
+  FlatList,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import axios from 'axios';
+import { RouteProp, useRoute } from '@react-navigation/native';
+import { API_URL } from '@env';
 
-import {RouteProp} from '@react-navigation/native';
-import imagePaths from '../../constant/imagePaths';
-
-type RouteParams = {
-  image: string;
-  title: string;
-  price: string;
-  booking: string;
+type Amenity = {
+  name: string;
+  description: string;
+  capacity: number;
+  price: number;
+  advance: number;
 };
 
+type RouteParams = {
+  BookAmenity: {
+    name: string;
+  };
+};
+
+const timeSlots = Array.from({ length: 12 }, (_, i) => `${i + 1}pm-${i + 2 > 12 ? 1 : i + 2}pm`);
+
 const BookAmenity = () => {
-  const route = useRoute<RouteProp<{params: RouteParams}, 'params'>>();
-  const {image, title, price, booking} = route.params;
+  const route = useRoute<RouteProp<RouteParams, 'BookAmenity'>>();
+  const { name } = route.params;
 
-  const [fromDate, setFromDate] = useState<Date | null>(null);
-  const [toDate, setToDate] = useState<Date | null>(null);
-  const [showPicker, setShowPicker] = useState<{
-    type: 'from' | 'to';
-    show: boolean;
-  }>({
-    type: 'from',
-    show: false,
-  });
+  const [amenity, setAmenity] = useState<Amenity | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleDateChange = (event: any, selectedDate: Date | undefined) => {
-    if (selectedDate) {
-      if (showPicker.type === 'from') {
-        setFromDate(selectedDate);
-      } else {
-        setToDate(selectedDate);
-      }
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+
+  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
+  const [fullDayBooking, setFullDayBooking] = useState(false);
+
+  const [slotModalVisible, setSlotModalVisible] = useState(false);
+
+  const toggleSlot = (slot: string) => {
+    setSelectedSlots((prev) =>
+      prev.includes(slot) ? prev.filter((s) => s !== slot) : [...prev, slot]
+    );
+  };
+
+  const calculateAmount = () => {
+    if (!amenity) return 0;
+    if (fullDayBooking) {
+      const days = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+      return amenity.price * 24 * days;
+    } else {
+      return amenity.price * selectedSlots.length;
     }
-    setShowPicker({...showPicker, show: false});
   };
 
-  const formatDate = (date: Date | null) => {
-    if (!date) return 'Select Date';
-    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    })}`;
+  const handleBooking = async () => {
+    const bookingDetails = {
+      name,
+      startDate,
+      endDate: fullDayBooking ? endDate : startDate,
+      timeSlots: fullDayBooking ? ['Full Day'] : selectedSlots,
+      amount: calculateAmount(),
+    };
+
+    try {
+
+      console.log('Sending booking data:', bookingDetails); // Debugging log
+      const response = await axios.post(`${API_URL}/api/v1/book-amenity`,bookingDetails);
+      console.log('Booking successful', response);
+      Alert.alert('Booking Success', response.data.message || 'Amenity booked successfully');
+    } catch (error) {
+      console.error('Booking error:', error);
+      Alert.alert('Booking Failed', 'Selected Time slot is Not Available');
+    }
   };
+
+  useEffect(() => {
+    const fetchAmenityDetails = async () => {
+      try {
+        console.log("Name:",name);
+        const response = await axios.get(`${API_URL}/api/v1/get-amenity`);
+        const amenities = response.data?.amenities;
+        const matched = amenities.find((item: Amenity) => item.name === name);
+        setAmenity(matched || null);
+      } catch (error) {
+        console.error('Failed to fetch amenity details:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAmenityDetails();
+  }, [name]);
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
+  if (!amenity) {
+    return (
+      <View style={styles.center}>
+        <Text>No details found for this amenity.</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Amenity Details</Text>
-      <Image source={imagePaths.club_house} style={styles.image} />
-      <FlatList
-        data={[
-          {key: 'Title', value: title},
-          {key: 'Price', value: price},
-          {key: 'Booking', value: booking},
-        ]}
-        keyExtractor={item => item.key}
-        renderItem={({item}) => (
-          <View style={styles.item}>
-            <Text style={styles.label}>{item.key}:</Text>
-            <Text style={styles.value}>{item.value}</Text>
-          </View>
-        )}
-        contentContainerStyle={styles.listContainer}
-      />
-      <View style={styles.dateContainer}>
+      <Text style={styles.title}>{amenity.name}</Text>
+      <Text style={styles.label}>Description:</Text>
+      <Text style={styles.value}>{amenity.description}</Text>
+
+      <Text style={styles.label}>Capacity: {amenity.capacity}</Text>
+      <Text style={styles.label}>Price/hour: ₹{amenity.price}</Text>
+      <Text style={styles.label}>Advance: ₹{amenity.advance}</Text>
+
+      <Text style={styles.label}>Booking Mode:</Text>
+      <View style={styles.toggleRow}>
         <TouchableOpacity
-          style={styles.dateButton}
-          onPress={() => setShowPicker({type: 'from', show: true})}>
-          <Text style={styles.dateText}>From: {formatDate(fromDate)}</Text>
+          style={[styles.toggleBtn, !fullDayBooking && styles.activeToggle]}
+          onPress={() => setFullDayBooking(false)}
+        >
+          <Text>Hourly</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.dateButton}
-          onPress={() => setShowPicker({type: 'to', show: true})}>
-          <Text style={styles.dateText}>To: {formatDate(toDate)}</Text>
+          style={[styles.toggleBtn, fullDayBooking && styles.activeToggle]}
+          onPress={() => setFullDayBooking(true)}
+        >
+          <Text>Full Day</Text>
         </TouchableOpacity>
       </View>
-      {showPicker.show && (
-        <DateTimePicker
-          value={new Date()}
-          mode="datetime"
-          display={Platform.OS === 'ios' ? 'inline' : 'default'}
-          onChange={handleDateChange}
-          minimumDate={
-            showPicker.type === 'to' && fromDate ? fromDate : undefined
-          }
-        />
+      // Inside your return (after booking mode toggle buttons):
+
+<TouchableOpacity onPress={() => setShowStartPicker(true)}>
+  <Text style={styles.label}>
+    {fullDayBooking ? 'Start Date' : 'Date'}: {startDate.toDateString()}
+  </Text>
+</TouchableOpacity>
+
+{showStartPicker && (
+  <DateTimePicker
+    value={startDate}
+    mode="date"
+    display="default"
+    onChange={(_, selectedDate) => {
+      setShowStartPicker(false);
+      if (selectedDate) setStartDate(selectedDate);
+    }}
+  />
+)}
+
+// ✅ Only show End Date picker if Full Day selected
+{fullDayBooking && (
+  <>
+    <TouchableOpacity onPress={() => setShowEndPicker(true)}>
+      <Text style={styles.label}>End Date: {endDate.toDateString()}</Text>
+    </TouchableOpacity>
+
+    {showEndPicker && (
+      <DateTimePicker
+        value={endDate}
+        mode="date"
+        display="default"
+        onChange={(_, selectedDate) => {
+          setShowEndPicker(false);
+          if (selectedDate) setEndDate(selectedDate);
+        }}
+      />
+    )}
+  </>
+)}
+
+
+      {!fullDayBooking && (
+        <>
+          <TouchableOpacity
+            onPress={() => setSlotModalVisible(true)}
+            style={styles.selectSlotButton}
+          >
+            <Text style={styles.selectSlotText}>Select Time Slots</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.label}>
+            Selected Slots: {selectedSlots.length > 0 ? selectedSlots.join(', ') : 'None'}
+          </Text>
+
+          <Modal visible={slotModalVisible} animationType="slide" transparent>
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Choose Time Slots</Text>
+                <FlatList
+                  data={timeSlots}
+                  numColumns={3}
+                  keyExtractor={(item) => item}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[
+                        styles.slot,
+                        selectedSlots.includes(item) && styles.selectedSlot,
+                      ]}
+                      onPress={() => toggleSlot(item)}
+                    >
+                      <Text style={[
+                        styles.slotText,
+                        selectedSlots.includes(item) && styles.selectedSlotText,
+                      ]}>
+                        {item}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                />
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={() => setSlotModalVisible(false)}
+                >
+                  <Text style={styles.modalCloseText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+        </>
       )}
+
+      <Text style={styles.total}>Total Price: ₹{calculateAmount()}</Text>
+
+      <TouchableOpacity style={styles.bookBtn} onPress={handleBooking}>
+        <Text style={styles.bookText}>Book Now</Text>
+      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#f7f7f7',
+  container: { padding: 20 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 10 },
+  label: { fontSize: 16, marginTop: 10 },
+  value: { fontSize: 16 },
+  toggleRow: { flexDirection: 'row', marginTop: 10 },
+  toggleBtn: {
+    padding: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    marginRight: 10,
   },
-  image: {
-    width: '100%',
-    height: 200,
+  activeToggle: {
+    backgroundColor: '#ddd',
+  },
+  slot: {
+    borderWidth: 1,
+    padding: 10,
     borderRadius: 10,
-    marginBottom: 20,
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#333',
-  },
-  listContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 15,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  item: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-  },
-  label: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    color: '#333',
-  },
-  value: {
-    fontSize: 16,
-    color: '#555',
-  },
-  dateContainer: {
-    marginTop: 20,
-  },
-  dateButton: {
-    backgroundColor: '#007bff',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
+    margin: 5,
+    flex: 1,
     alignItems: 'center',
   },
-  dateText: {
-    fontSize: 16,
+  selectedSlot: {
+    backgroundColor: '#007AFF',
+  },
+  selectedSlotText: {
     color: '#fff',
+  },
+  slotText: {
+    color: '#000',
+  },
+  total: {
+    fontSize: 18,
     fontWeight: 'bold',
+    marginTop: 15,
+  },
+  bookBtn: {
+    backgroundColor: '#007AFF',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  bookText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  selectSlotButton: {
+    marginTop: 10,
+    padding: 12,
+    backgroundColor: '#007AFF',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  selectSlotText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    width: '90%',
+    borderRadius: 10,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  modalCloseButton: {
+    marginTop: 15,
+    padding: 12,
+    backgroundColor: '#007AFF',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    color: '#fff',
+    fontSize: 16,
   },
 });
 
 export default BookAmenity;
-
-// import { useRoute } from '@react-navigation/native';
-// import React from 'react';
-// import { View, Text, FlatList, StyleSheet, Image } from 'react-native';
-
-// import { RouteProp } from '@react-navigation/native';
-// import imagePaths from '@/src/constant/imagePaths';
-
-// type RouteParams = {
-//     image: string;
-//     title: string;
-//     price: string;
-//     booking: string;
-// };
-
-// const BookAmenity = () => {
-//     const route = useRoute<RouteProp<{ params: RouteParams }, 'params'>>();
-//     const { image, title, price, booking } = route.params
-//     // Transform the data into a FlatList-compatible array
-//     const data = [
-//         { key: 'Title', value: title },
-//         { key: 'Price', value: price },
-//         { key: 'Booking', value: booking },
-//     ];
-
-//     return (
-//         <View style={styles.container}>
-//             <Text style={styles.header}>Amenity Details</Text>
-//             <Image source={imagePaths.club_house} style={styles.image} />
-//             <FlatList
-//                 data={data}
-//                 keyExtractor={(item) => item.key}
-//                 renderItem={({ item }) => (
-//                     <View style={styles.item}>
-//                         <Text style={styles.label}>{item.key}:</Text>
-//                         <Text style={styles.value}>{item.value}</Text>
-//                     </View>
-
-//                 )}
-//                 contentContainerStyle={styles.listContainer}
-//             />
-//         </View>
-//     );
-// };
-
-// const styles = StyleSheet.create({
-//     container: {
-//         flex: 1,
-//         padding: 20,
-//         backgroundColor: '#f7f7f7',
-//     },
-//     image: {
-//         width: '100%',
-//         height: 200,
-//         borderRadius: 10,
-//         marginBottom: 20,
-//     },
-//     header: {
-//         fontSize: 24,
-//         fontWeight: 'bold',
-//         textAlign: 'center',
-//         marginBottom: 20,
-//         color: '#333',
-//     },
-//     listContainer: {
-//         backgroundColor: '#fff',
-//         borderRadius: 8,
-//         padding: 15,
-//         shadowColor: '#000',
-//         shadowOffset: { width: 0, height: 2 },
-//         shadowOpacity: 0.2,
-//         shadowRadius: 4,
-//         elevation: 3,
-//     },
-//     item: {
-//         flexDirection: 'row',
-//         justifyContent: 'space-between',
-//         paddingVertical: 10,
-//         borderBottomWidth: 1,
-//         borderBottomColor: '#ddd',
-//     },
-//     label: {
-//         fontWeight: 'bold',
-//         fontSize: 16,
-//         color: '#333',
-//     },
-//     value: {
-//         fontSize: 16,
-//         color: '#555',
-//     },
-// });
-
-// export default BookAmenity;

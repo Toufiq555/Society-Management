@@ -15,7 +15,7 @@ import {
   useRoute,
 } from '@react-navigation/native';
 import {AuthProvider, AuthContext} from '../../../context/authContext';
-import { API_URL } from "@env";
+import { API_URL } from '@env';
 
 type RouteParams = {
   phone: string;
@@ -40,10 +40,10 @@ const Otp = () => {
     }
 
     try {
-      const {data} = await axios.post(
-        `${API_URL}/api/auth/verify-otp`,
-        {phone, otp},
-      );
+      const {data} = await axios.post(`${API_URL}/api/auth/verify-otp`, {
+        phone,
+        otp,
+      });
 
       if (data.success) {
         const {token, user} = data; // ✅ Get token & user from response
@@ -54,7 +54,7 @@ const Otp = () => {
         Alert.alert('Success', 'OTP Verified Successfully');
 
         // ✅ Navigate to main screen & reset navigation stack
-        // navigation.reset({index: 0, routes: [{name: 'main'}]});
+         navigation.reset({index: 0, routes: [{name: 'main'}]});
       } else {
         Alert.alert('Error', data.message || 'Invalid OTP');
       }

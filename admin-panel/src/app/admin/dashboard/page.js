@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 
 export default function AdminDashboard() {
   const [totalMembers, setTotalMembers] = useState(0);
+  const [totalNotices, setTotalNotices] = useState(0);
 
   const fetchTotalMembers = async () => {
     try {
@@ -26,7 +27,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchTotalMembers();
   }, []);
-
+  
+  
   return (
     <div style={{ padding: "20px" }}>
       {/* Dashboard Stats */}
