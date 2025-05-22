@@ -1,87 +1,82 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { View, Text } from 'react-native';
-import { createStackNavigator } from '@react-navigation/stack';
+import React, {useContext, useEffect, useState} from 'react';
+import {View, ActivityIndicator} from 'react-native';
+import {createStackNavigator} from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AuthContext } from '../../context/authContext';
+import {AuthContext} from '../../context/authContext';
 
+// ✅ Auth Screens
 import Intro from './auth/intro';
 import Login from './auth/login';
 import Otp from './auth/otp';
-import bottomtab from './main/bottomtab';
+
+// ✅ Main App Screens
+import Bottomtab from './main/bottomtab';
 import Home from './main/home';
 import Chat from './main/chat';
 import Profile from './main/profile';
-import Security from './main/security';
+//import Security from './main/security';
 import Members from './main/members';
+import Visitors from './main/visitors';
+import NoticeBoard from './main/noticeboard';
+import Helpdesk from './main/helpdesk';
+import MessageScreen from './main/messageScreen';
 import Payment from './main/payment';
 import Notification from './main/notification';
 import Service from './main/service';
-import Bookamenities from './main/bookamenities';
-import BookAmenity from './main/bookamenity';
+import AddComplaint from './main/addcomplaint';
 import Creditcard from './main/creditcard';
 import Debitcard from './main/debitcard';
 import Editprofile from './main/editprofile';
 import Getsupport from './main/getsupport';
 import Language from './main/language';
+import PrivacyPolicy from './main/policy';
 import Receipt from './main/receipt';
-import SelectAmenity from './main/selectamenity';
+
 import Selectpaymentmethod from './main/selectpaymentmethod';
 import Setting from './main/setting';
 import Terms from './main/terms';
-import Visitors from './main/visitors';
-import NoticeBoard from './main/noticeboard';
-import Helpdesk from './main/helpdesk';
-import AddComplaint from './main/addcomplaint';
-import PrivacyPolicy from './main/policy';
-import MessageScreen from './main/messageScreen';
-import AddGuestScreen from './main/Addguest';
+
+//import pendingPayment from './main/pendingPayment';
+//import paymentCategories from './main/paymentCategories';
+//import paymentHistory from './main/paymentHistory';
+//import MaintenanceFees from './main/MaintenanceFees';
 import AddDeliveryScreen from './main/AddDeliveryScreen';
 import VisitorHistory from './main/VisitorHistory';
-import security from './main/security';
+import AddGuestScreen from './main/Addguest';
+import Security from './main/security';
+//import AmenitiesScreen from './main/AmenitiesScreen';
+import Bookamenities from './main/bookamenities';
+import BookAmenity from './main/bookamenity';
+import SelectAmenity from './main/selectamenity';
+
 
 const Stack = createStackNavigator();
 
-const AppNavigator: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // Use null for initial state
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const data = await AsyncStorage.getItem('@auth');
-        const loginData = data ? JSON.parse(data) : null;
-        setIsAuthenticated(!!loginData?.token); // Check if token exists
-      } catch (error) {
-        console.error('Error checking auth status:', error);
-        setIsAuthenticated(false);
-      } finally {
-        setLoading(false); // Ensure loading is set to false after the check
-      }
-    };
-    checkAuthStatus();
-  }, []);
-
-  if (loading) {
+  const AppNavigator: React.FC = () => {
+    const authContext = useContext(AuthContext); // ✅ Context ko use karein
+  
+    if (!authContext) return null; // ✅ Null safety check
+  
+    const {user, loading} = authContext; // ✅ user & loading extract karein
+  
+    // ✅ Loading state handle karein
+    if (loading) {
+      return (
+        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      );
+    }
+  
     return (
-      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
-  const user = isAuthenticated;
-
   
-  //auth condition true false
-  
-  const Stack = createStackNavigator();
-  return (
-    <Stack.Navigator>
+    <Stack.Navigator >
       {user ? (
         // ✅ Agar user login hai, toh main app screens show karein
         <>
           <Stack.Screen
             name="main"
-            component={bottomtab}
+            component={Bottomtab}
             options={{headerShown: false}}
           />
           <Stack.Screen
@@ -160,7 +155,7 @@ const AppNavigator: React.FC = () => {
             options={{headerShown: false}}
           />
           <Stack.Screen
-            name="Selectamenity"
+            name="SelectAmenity"
             component={SelectAmenity}
             options={{headerShown: false}}
           />
@@ -169,6 +164,11 @@ const AppNavigator: React.FC = () => {
             component={BookAmenity}
             options={{headerShown: false}}
           />
+   
+   {/* <Stack.Screen name="AmenitiesScreen" component={AmenitiesScreen} /> */}
+<Stack.Screen name="BookAmenity" component={BookAmenity} />
+
+
           <Stack.Screen
             name="Helpdesk"
             component={Helpdesk}
@@ -190,21 +190,26 @@ const AppNavigator: React.FC = () => {
             component={MessageScreen}
             options={{headerShown: false}}
           />
+
+
+
+
         </>
       ) : (
+       
         // ✅ Agar user login nahi hai, toh auth screens show karein
-       
-       
-       <>
-    {/* <Stack.Screen name="secuirty" component={Security} />
+        <>
+
+{/*      
+        <Stack.Screen name="Secuirty" component={Security} />
         <Stack.Screen name="AddGuest" component={AddGuestScreen} />
         <Stack.Screen name="AddDelivery" component={AddDeliveryScreen} />
-        <Stack.Screen name="History" component={VisitorHistory} />
+        <Stack.Screen name="History" component={VisitorHistory} /> */}
 
-
+{/* 
             <Stack.Screen
             name="security"
-            component={security}
+            component={Security}
             options={{headerShown: false}}
           /> */}
           <Stack.Screen

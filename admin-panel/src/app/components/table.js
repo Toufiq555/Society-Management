@@ -47,7 +47,10 @@ export default function TableComponent({
               style={{ borderBottom: "1px solid #e5e7eb" }}
             >
               {headers.map((header, colIndex) => {
-                const key = header.toLowerCase().replace(/\s+/g, "_"); // Convert header format to match API keys
+                const key = Object.keys(item).find(
+                  (k) => k.toLowerCase() === header.toLowerCase()
+                );
+                
 
                 return (
                   <td key={`${rowIndex}-${colIndex}`} style={styles.td}>

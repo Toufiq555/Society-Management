@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, Alert, PermissionsAndroid } from "react-native";
 import messaging from "@react-native-firebase/messaging";
+import { API_URL } from "@env";
+
 
 // ✅ Define Type for Notifications
 type NotificationType = {
@@ -61,7 +63,7 @@ const Notification = () => {
       console.log("FCM Token:", token);
 
       // ✅ Send Token to Backend
-      await fetch("http://192.168.1.11:8080/api/v1/auth/save-token", {
+      await fetch(`/api/v1/auth/save-token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ flat: "101", token }),

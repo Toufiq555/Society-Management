@@ -1,73 +1,145 @@
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-  TextInput,
-} from 'react-native';
-import React, {useState} from 'react';
-import {RouteProp, useRoute} from '@react-navigation/native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { io, Socket } from 'socket.io-client';
+import { API_URL, SOCKET_URL } from "@env";
 
-type RouteParams = {
+interface Message {
+  id: string;
+  sender_id: string;
+  content: string;
+  timestamp: string;
+}
+
+type MessageScreenRouteParams = {
   userName: string;
+  userId: string;
 };
-const MessageScreen = ({router, navigation}: any) => {
-  const route = useRoute<RouteProp<{params: RouteParams}, 'params'>>();
-  const {userName} = route.params; // username fetch
 
-  const [messages, setMessage] = useState([
-    {id: '1', text: 'hello', sender: 'other'},
-    {id: '2', text: 'hi', sender: 'me'},
-  ]);
+type MessageScreenRouteProp = RouteProp<any, 'MessageScreen'>;
 
-  const [newMessage, setNewMessage] = useState('');
-  const sendMessage = () => {
-    if (newMessage.trim().length > 0) {
-      const newMsg = {
-        id: Date.now().toString(),
-        text: newMessage,
-        sender: 'me',
+const MessageScreen = () => {
+  const route = useRoute<MessageScreenRouteProp>();
+  const navigation = useNavigation();
+  const { userName, userId: otherUserId } = route.params as MessageScreenRouteParams;
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessageText, setNewMessageText] = useState('');
+  const [chatId, setChatId] = useState<string | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>('user123'); //  Get from auth
+
+ useEffect(() => {
+    const fetchOrCreateChatId = async () => {
+      if (!currentUserId || !otherUserId) return;
+
+      try {
+        console.log('API_URL:', `${API_URL}/api/v1/chats`);
+console.log('Method:', 'POST');
+console.log('Headers:', { 'Content-Type': 'application/json' });
+console.log('Body:', JSON.stringify({ userId1: currentUserId, userId2: otherUserId }));
+
+        const response = await fetch(`${API_URL}/api/v1/chats`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId1: currentUserId, userId2: String(otherUserId) }), // Convert the otherUserId to a string
+        });
+        const data = await response.json();
+
+        if (data.success && data.chatId) {
+          setChatId(data.chatId);
+        }
+      } catch (error) {
+        console.error('Error fetching/creating chat ID:', error);
+      }
+    };
+
+    fetchOrCreateChatId();
+  }, [currentUserId, otherUserId]);
+
+
+  useEffect(() => {
+    if (chatId) {
+      const newSocket = io(SOCKET_URL);
+      setSocket(newSocket);
+
+      newSocket.emit('joinChat', chatId);
+
+      const fetchMessages = async () => {
+        try {
+          const response = await fetch(`${API_URL}/api/v1/messages/${chatId}`); //  the Corrected route
+          const data = await response.json();
+          if (data.success) {
+            setMessages(data.messages);
+          }
+        } catch (error) {
+          console.error('Error fetching messages:', error);
+        }
       };
-      setMessage([...messages, newMsg]);
-      setNewMessage('');
+      fetchMessages();
+
+      const handleNewMessage = (message: Message) => {
+        console.log("New message received", message);
+        setMessages((prevMessages) => [...prevMessages, message]);
+      };
+
+      newSocket.on('newMessage', handleNewMessage);
+
+      return () => {
+        newSocket.disconnect();
+        setSocket(null);
+        newSocket.off('newMessage', handleNewMessage);
+      };
     }
-  };
+  }, [chatId]);
+
+  const sendMessage = useCallback(() => {
+    if (newMessageText.trim() && chatId && currentUserId) {
+      socket?.emit('sendMessage', {
+        sender: currentUserId,
+        receiver: otherUserId,
+        message: newMessageText,
+        chatId: chatId, // Pass the chatId here
+      });
+      setNewMessageText('');
+    }
+  }, [newMessageText, chatId, currentUserId, otherUserId, socket]);
+
+  const renderItem = ({ item }: { item: Message }) => (
+    <View style={[
+      styles.messageContainer,
+      item.sender_id === currentUserId ? styles.sentMessage : styles.receivedMessage,
+    ]}>
+      <Text style={styles.messageText}>{item.content}</Text>
+      <Text style={styles.timestamp}>{new Date(item.timestamp).toLocaleTimeString()}</Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-      {/*Top bar*/}
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backButton}>{'←'}</Text>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Icon name="chevron-back" size={24} color="#007AFF" />
         </TouchableOpacity>
-        <Text style={styles.userName}>{userName}</Text>
+        <Text style={styles.headerTitle}>{userName}</Text>
       </View>
-
-      {/*Message List*/}
       <FlatList
         data={messages}
-        keyExtractor={item => item.id}
-        renderItem={({item}) => (
-          <View
-            style={[
-              styles.messageBubble,
-              item.sender === 'me' ? styles.myMessage : styles.otherMessage,
-            ]}>
-            <Text style={styles.messageText}>{item.text}</Text>
-          </View>
-        )}
-        inverted // Latest message neeche se upar aaye
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        inverted
       />
-
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          value={newMessage}
-          onChangeText={setNewMessage}
-          placeholder="Type a message..."
+          value={newMessageText}
+          onChangeText={setNewMessageText}
+          placeholder="Send a message..."
         />
         <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-          <Text style={styles.sendButtonText}>Send</Text>
+          <Icon name="send" size={24} color="#007AFF" />
         </TouchableOpacity>
       </View>
     </View>
@@ -79,60 +151,69 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  topBar: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
-    backgroundColor: '#007bff',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    backgroundColor: 'white',
   },
   backButton: {
-    fontSize: 20,
-    color: 'white',
     marginRight: 10,
   },
-  userName: {
+  headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
   },
-  messageBubble: {
-    padding: 10,
-    marginVertical: 5,
+  messageContainer: {
     borderRadius: 10,
-    maxWidth: '75%',
+    padding: 8,
+    marginVertical: 4,
+    marginHorizontal: 10,
+    maxWidth: '70%',
   },
-  myMessage: {
+  sentMessage: {
+    backgroundColor: '#DCF8C6',
     alignSelf: 'flex-end',
-    backgroundColor: '#007bff',
   },
-  otherMessage: {
+  receivedMessage: {
+    backgroundColor: '#FFFFFF',
     alignSelf: 'flex-start',
-    backgroundColor: '#e0e0e0',
   },
   messageText: {
-    color: 'white',
+    fontSize: 16,
+    color: '#333',
+  },
+  timestamp: {
+    fontSize: 12,
+    color: '#777',
+    alignSelf: 'flex-end',
+    marginTop: 2,
   },
   inputContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
     padding: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#ccc',
     backgroundColor: 'white',
   },
   input: {
     flex: 1,
-    padding: 10,
-    borderWidth: 1,
+    height: 40,
     borderColor: '#ccc',
+    borderWidth: 1,
     borderRadius: 20,
+    paddingHorizontal: 15,
+    marginRight: 10,
+    backgroundColor: '#f0f0f0',
   },
   sendButton: {
-    marginLeft: 10,
-    backgroundColor: '#007bff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    padding: 10,
     borderRadius: 20,
-  },
-  sendButtonText: {
-    color: 'white',
+    backgroundColor: '#e6f2ff',
   },
 });
 

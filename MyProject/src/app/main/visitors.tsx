@@ -1,48 +1,50 @@
-import {
-  View,
-  Text,
-  Button,
-  TouchableOpacity,
-  Modal,
-  StyleSheet,
-} from 'react-native';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { View, Button, StyleSheet, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Flatlist from '../../components/Flatlist';
-
+import { API_URL } from '@env';
 const Visitors = () => {
+  const [visitors, setVisitors] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchVisitors = async () => {
+      try {
+        const flatNumber = await AsyncStorage.getItem('@flatNumber'); // Flat number fetch karein
+        if (!flatNumber) {
+          console.error('Flat number not found');
+          return;
+        }
+    
+        const response = await fetch(`${API_URL}/api/guests?flat=${flatNumber}`);
+        const data = await response.json();
+        setVisitors(data);
+      } catch (error) {
+        console.error('Error fetching visitors:', error);
+      }
+    };
+    
+    fetchVisitors();
+  }, []);
+
+  if (loading) {
+    return <ActivityIndicator size="large" color="#0000ff" />;
+  }
+
   return (
     <View>
-      <View>
+      {visitors.map((visitor, index) => (
         <Flatlist
-          image="https://via.placeholder.com/150"
-          name="Visitor Name"
-          time="12:00 PM"
-          status="Pre-approved"
+          key={index}
+          image={visitor.image}
+          name={visitor.name}
+          time={visitor.time}
+          status={visitor.status}
           onCallPress={() => console.log('Call Pressed')}
           onDeletePress={() => console.log('Delete Pressed')}
           onGatePassPress={() => console.log('Gate Pass Pressed')}
         />
-
-        <Flatlist
-          image="https://via.placeholder.com/150"
-          name="Visitor Name"
-          time="12:00 PM"
-          status="Inside"
-          onCallPress={() => console.log('Call Pressed')}
-          onDeletePress={() => console.log('Delete Pressed')}
-          onGatePassPress={() => console.log('Gate Pass Pressed')}
-        />
-
-        <Flatlist
-          image="https://via.placeholder.com/150"
-          name="Visitor Name"
-          time="12:00 PM"
-          status="Inside"
-          onCallPress={() => console.log('Call Pressed')}
-          onDeletePress={() => console.log('Delete Pressed')}
-          onGatePassPress={() => console.log('Gate Pass Pressed')}
-        />
-      </View>
+      ))}
 
       <View style={styles.buttonContainer}>
         <Button title="Pre-approve Visitors" />

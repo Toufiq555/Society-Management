@@ -1,26 +1,15 @@
-const express = require("express");
-const router = express.Router();
-const {
-  getUserChats,
-  getMessages,
-  startChat,
-  sendMessage,
-  markMessagesAsRead,
-} = require("../controllers/chatController");
+    const express = require('express');
+    const router = express.Router();
+    const chatController = require('../controllers/chatController');
 
-// Get all chats of a user
-router.get("/:userid", getUserChats);
+    // Get all chats for a specific user
+    router.get('/chats/:userId', chatController.getChats);
 
-// Start or Get Chat
-router.post("/start", startChat);
+    // Get messages for a specific chat
+    router.get('/messages/:chatId', chatController.getMessages);
 
-// Get messages between users
-router.get("/:chatId/messages", getMessages);
+    // Start a new chat between two users
+    router.post('/chats', chatController.startChat); // Corrected route
 
-// Send message
-router.post("/send", sendMessage);
-
-// Mark messages as read
-router.post("/mark-read", markMessagesAsRead);
-
-module.exports = router;
+    module.exports = router;
+    

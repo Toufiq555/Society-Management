@@ -1,73 +1,179 @@
-import {useNavigation, NavigationProp} from '@react-navigation/native';
-type StackParamList = {
-  MessageScreen: {userName: string};
-};
-import MessageCard from '../../components/messagecard';
-import imagePaths from '../../constant/imagePaths';
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState, useCallback, useContext } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   FlatList,
-  Image,
-  SectionList,
   Alert,
   ActivityIndicator,
+  RefreshControl,
+  useColorScheme,
+  TextInput,
+  Modal,
+  TouchableWithoutFeedback,
+  SafeAreaView,
+  Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import io from 'socket.io-client';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import MessageCard from '../../components/messagecard';
+import imagePaths from '../../constant/imagePaths';
+import { API_URL, SOCKET_URL } from "@env";
+import { AuthContext } from '../../../context/authContext';
 
-// Chat data
-const chatData = [
-  {
-    image: imagePaths.club_house,
-    name: 'emma weston',
-    message: 'hello',
-    time: '6:45 pm',
-    messageCount: 1,
-  },
-  {
-    image: imagePaths.club_house,
-    name: 'weston',
-    message: 'hello',
-    time: '6:45 am',
-    messageCount: 1,
-  },
-  {
-    image: imagePaths.club_house,
-    name: 'weston jon',
-    message: 'hello',
-    time: '6:45 pm',
-    messageCount: 0,
-  },
-];
+const socket = io(SOCKET_URL);
+const { width } = Dimensions.get('window');
 
+type StackParamList = {
+  MessageScreen: { userName: string; userId: string };
+};
+
+type Chat = {
+  id: string;
+  userId: string;
+  name: string;
+  message: string;
+  time: string;
+  messageCount?: number;
+  image: string;
+};
+
+// Chat Tab
 const ChatScreen = () => {
   const navigation = useNavigation<NavigationProp<StackParamList>>();
+  const [messages, setMessages] = useState<Chat[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const colorScheme = useColorScheme();
+  const { user } = useContext(AuthContext);
+  const userId = user?.id;
+
+  const fetchChats = useCallback(async () => {
+    try {
+      if (!userId) return;
+
+      const response = await fetch(`${API_URL}/api/v1/chats/${userId}`);
+      
+      const contentType = response.headers.get('Content-Type');
+      if (contentType && contentType.includes('text/html')) {
+        const htmlResponse = await response.text();
+        console.error('HTML response:', htmlResponse);
+        Alert.alert('Error', 'Received the unexpected HTML response from the server');
+        return;
+      }
+      
+      const jsonData = await response.json();
+      if (jsonData.success) {
+        setMessages(jsonData.chats);
+      } else {
+        Alert.alert('Error', jsonData.message || 'Failed to load chats');
+      }
+    } catch (error) {
+      console.error('Error fetching the chats:', error);
+      Alert.alert('Error', 'Failed to connect to server');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    socket.connect();
+    fetchChats();
+
+    const handleNewMessage = (msg: {
+      senderId: string;
+      senderName: string;
+      text: string;
+    }) => {
+      setMessages((prev) => {
+        const existingChatIndex = prev.findIndex(chat => chat.userId === msg.senderId);
+        if (existingChatIndex >= 0) {
+          const updatedChats = [...prev];
+          updatedChats[existingChatIndex] = {
+            ...updatedChats[existingChatIndex],
+            message: msg.text,
+            time: 'Just now',
+            messageCount: (updatedChats[existingChatIndex].messageCount || 0) + 1
+          };
+          return updatedChats;
+        } else {
+          return [{
+            id: msg.senderId,
+            userId: msg.senderId,
+            name: msg.senderName || 'New User',
+            message: msg.text,
+            time: 'Just now',
+            messageCount: 1,
+            image: imagePaths.club_house,
+          }, ...prev];
+        }
+      });
+    };
+
+    socket.on('new_message', handleNewMessage);
+
+    return () => {
+      socket.disconnect();
+      socket.off('new_message', handleNewMessage);
+    };
+  }, [fetchChats, userId]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchChats();
+  }, [fetchChats]);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
   return (
-    <FlatList
-      data={chatData}
-      keyExtractor={item => item.name}
-      renderItem={({item}) => (
-        <TouchableOpacity
-          onPress={() =>
-            navigation.navigate('MessageScreen', {userName: item.name})
-          }>
-          <MessageCard
-            name={item.name}
-            message={item.message}
-            image={item.image}
-            count={item.messageCount}
-            time={item.time}
-          />
-        </TouchableOpacity>
-      )}
-    />
+    <SafeAreaView style={styles.flexContainer}>
+      <FlatList
+        contentContainerStyle={styles.flatListContent}
+        data={messages}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('MessageScreen', { 
+              userName: item.name,
+              userId: item.userId 
+            })}
+          >
+            <MessageCard
+              name={item.name}
+              message={item.message}
+              image={item.image}
+              count={item.messageCount}
+              time={item.time}
+              darkMode={colorScheme === 'dark'}
+            />
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No chats yet</Text>
+            <Text style={styles.emptySubText}>Start a conversation with your neighbors</Text>
+          </View>
+        }
+      />
+    </SafeAreaView>
   );
 };
 
-// Resident Screen Component
+// The Residents Tab
 type Member = {
   id: string;
   name: string;
@@ -80,243 +186,526 @@ type Member = {
 const ResidentScreen = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBlock, setSelectedBlock] = useState<string>('All');
+  const [showBlockPicker, setShowBlockPicker] = useState(false);
+  const navigation = useNavigation<NavigationProp<StackParamList>>();
+  const colorScheme = useColorScheme();
+  const { user } = useContext(AuthContext);
+  
+  const currentUserId = user?.id;
 
-  // ✅ API Call to Fetch Members
-  useEffect(() => {
-    const fetchMembers = async () => {
-      try {
-        const response = await fetch('http://192.168.1.5:8080/api/v1/members'); // 🔹 Replace with actual API URL
-        const jsonData = await response.json();
-        if (jsonData.success) {
-          setMembers(jsonData.members); // ✅ Save API data
-        } else {
-          Alert.alert('Error', 'Failed to load members');
-        }
-      } catch (error) {
-        console.error('Error fetching members:', error);
-        Alert.alert('Error', 'Something went wrong');
-      } finally {
-        setLoading(false);
+  const fetchMembers = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/members`);
+      const jsonData = await response.json();
+      if (jsonData.success) {
+        const otherMembers = jsonData.members.filter((member: Member) => member.id !== currentUserId);
+        setMembers(otherMembers);
+      } else {
+        Alert.alert('Error', jsonData.message || 'Failed to load the members');
       }
-    };
+    } catch (error) {
+      console.error('Error fetching members:', error);
+      Alert.alert('Error', 'Failed to connect to server');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [currentUserId]);
 
+  useEffect(() => {
     fetchMembers();
-  }, []);
+  }, [fetchMembers]);
 
-  // ✅ Extract unique blocks
-  const uniqueBlocks = [...new Set(members.map(member => member.block))].sort();
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchMembers();
+  }, [fetchMembers]);
 
-  // ✅ Filter members based on selected block
-  const filteredMembers = selectedBlock
-    ? members.filter(member => member.block === selectedBlock)
-    : [];
+  const uniqueBlocks = ['All', ...new Set(members.map((m) => m.block))].sort();
 
-  // ✅ Show loader while fetching data
+  const filteredMembers = members.filter((member) => {
+    const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesBlock = selectedBlock === 'All' || member.block === selectedBlock;
+    return matchesSearch && matchesBlock;
+  });
+
+  const startChat = useCallback((member: Member) => {
+    navigation.navigate('MessageScreen', { 
+      userName: member.name,
+      userId: member.id 
+    });
+  }, [navigation]);
+
   if (loading) {
     return (
-      <ActivityIndicator size="large" color="#005bb5" style={{marginTop: 20}} />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* 🔹 Block Selection (Only show if no block is selected) */}
-      {!selectedBlock ? (
-        <View style={styles.blockContainer}>
-          {uniqueBlocks.map(block => (
-            <TouchableOpacity
-              key={block}
-              style={styles.blockButton}
-              onPress={() => setSelectedBlock(block)}>
-              <Text style={styles.blockText}>Block {block}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : (
-        // 🔹 Show only selected block with a back button
-        <View style={styles.selectedBlockContainer}>
-          <TouchableOpacity
-            onPress={() => setSelectedBlock(null)}
-            style={styles.backButton}>
-            <Icon name="arrow-back" size={22} color="#333" />
-            {/* <Text style={styles.backText}>Back</Text> */}
-          </TouchableOpacity>
-          <Text style={styles.selectedBlockText}>Block {selectedBlock}</Text>
-        </View>
-      )}
-
-      {/* 🔹 Show Selected Block's Members */}
-      {selectedBlock ? (
-        filteredMembers.length > 0 ? (
-          <FlatList
-            data={filteredMembers}
-            keyExtractor={item => item.id.toString()}
-            renderItem={({item}) => (
-              <View style={styles.card}>
-                <Text style={styles.name}>
-                  {item.name} ({item.role})
-                </Text>
-                <Text style={styles.details}>
-                  Flat: {item.flat_no} | {item.phone}
-                </Text>
-              </View>
-            )}
+    <SafeAreaView style={styles.flexContainer}>
+      <View style={styles.searchContainer}>
+        <View style={[
+          styles.searchInputContainer,
+          colorScheme === 'dark' && styles.darkSearchInputContainer
+        ]}>
+          <Icon name="search" size={20} color="#999" style={styles.searchIcon} />
+          <TextInput
+            style={[
+              styles.searchInput,
+              colorScheme === 'dark' && styles.darkSearchInput
+            ]}
+            placeholder="Search residents..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#999"
           />
-        ) : (
-          <Text style={styles.noMembersText}>
-            No members found in Block {selectedBlock}
+        </View>
+        <TouchableOpacity 
+          style={[
+            styles.blockFilterButton,
+            colorScheme === 'dark' && styles.darkBlockFilterButton
+          ]}
+          onPress={() => setShowBlockPicker(true)}
+        >
+          <Text style={styles.blockFilterText}>
+            {selectedBlock === 'All' ? 'All' : `${selectedBlock}`}
           </Text>
-        )
-      ) : (
-        <Text style={styles.selectText}>
-          Please select a block to view members
-        </Text>
-      )}
-    </View>
-  );
-};
-// Main Chat Component
-const Chat = () => {
-  const [activeTab, setActiveTab] = useState('chat');
+          <Icon name="chevron-down" size={16} color="#007AFF" />
+        </TouchableOpacity>
+      </View>
 
-  const renderContent = () => {
-    if (activeTab === 'chat') {
-      return <ChatScreen />;
-    } else if (activeTab === 'resident') {
-      return <ResidentScreen />;
-    }
-  };
-
-  return (
-    <View style={styles.containers}>
-      <View style={styles.container}>
-        {/* Top Buttons */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'chat' && styles.activeTab]}
-            onPress={() => setActiveTab('chat')}>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === 'chat' && styles.activeTabText,
+      <Modal
+        visible={showBlockPicker}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowBlockPicker(false)}
+      >
+        <View style={styles.modalContainer}>
+          <TouchableWithoutFeedback onPress={() => setShowBlockPicker(false)}>
+            <View style={styles.modalOverlay} />
+          </TouchableWithoutFeedback>
+          
+          <View style={[
+            styles.blockPickerContainer,
+            colorScheme === 'dark' && styles.darkBlockPickerContainer
+          ]}>
+            <View style={[
+              styles.blockPickerHeader,
+              colorScheme === 'dark' && styles.darkBlockPickerHeader
+            ]}>
+              <Text style={[
+                styles.blockPickerTitle,
+                colorScheme === 'dark' && styles.darkBlockPickerTitle
               ]}>
-              Chat
-            </Text>
-          </TouchableOpacity>
+                Select Block
+              </Text>
+              <TouchableOpacity 
+                onPress={() => setShowBlockPicker(false)}
+                style={styles.blockPickerCloseButton}
+              >
+                <Icon name="close" size={24} color="#007AFF" />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={uniqueBlocks}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.blockPickerItem,
+                    selectedBlock === item && styles.blockPickerItemSelected,
+                    colorScheme === 'dark' && styles.darkBlockPickerItem
+                  ]}
+                  onPress={() => {
+                    setSelectedBlock(item);
+                    setShowBlockPicker(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.blockPickerItemText,
+                    selectedBlock === item && styles.blockPickerItemTextSelected,
+                    colorScheme === 'dark' && styles.darkBlockPickerItemText
+                  ]}>
+                    {item === 'All' ? 'All Blocks' : `Block ${item}`}
+                  </Text>
+                  {selectedBlock === item && (
+                    <Icon name="checkmark" size={20} color="#007AFF" />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      <FlatList
+        data={filteredMembers}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
           <TouchableOpacity
             style={[
-              styles.tabButton,
-              activeTab === 'resident' && styles.activeTab,
+              styles.memberCard,
+              colorScheme === 'dark' && styles.darkMemberCard
             ]}
-            onPress={() => setActiveTab('resident')}>
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === 'resident' && styles.activeTabText,
-              ]}>
-              Residents
-            </Text>
+            onPress={() => startChat(item)}
+          >
+            <View style={styles.memberInfo}>
+              <Text 
+                style={[
+                  styles.memberName,
+                  colorScheme === 'dark' && styles.darkMemberName
+                ]}
+              >
+                {item.name}
+              </Text>
+              <Text 
+                style={[
+                  styles.memberDetails,
+                  colorScheme === 'dark' && styles.darkMemberDetails
+                ]}
+              >
+                {item.block} - {item.flat_no}
+              </Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.chatButton}
+              onPress={() => startChat(item)}
+            >
+              <Icon name="chatbubble-ellipses" size={20} color="#007AFF" />
+            </TouchableOpacity>
           </TouchableOpacity>
-        </View>
-
-        {/* Render Content Below */}
-        <View style={styles.content}>{renderContent()}</View>
-      </View>
-    </View>
+        )}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={[
+              styles.emptyText,
+              colorScheme === 'dark' && styles.darkEmptyText
+            ]}>
+              No residents found
+            </Text>
+            {searchQuery !== '' && (
+              <Text style={[
+                styles.emptySubText,
+                colorScheme === 'dark' && styles.darkEmptySubText
+              ]}>
+                Try a different search term
+              </Text>
+            )}
+          </View>
+        }
+      />
+    </SafeAreaView>
   );
 };
 
-// Styles
+// Main Chat Tabs
+const Chat = () => {
+  const [activeTab, setActiveTab] = useState<'chat' | 'resident'>('chat');
+  const colorScheme = useColorScheme();
+
+  return (
+    <SafeAreaView style={[
+      styles.container, 
+      colorScheme === 'dark' && styles.darkContainer
+    ]}>
+      <View style={[
+        styles.tabBar, 
+        colorScheme === 'dark' && styles.darkTabBar
+      ]}>
+        <TouchableOpacity
+          style={[
+            styles.tabButton, 
+            activeTab === 'chat' && styles.activeTab,
+            colorScheme === 'dark' && activeTab === 'chat' && styles.darkActiveTab
+          ]}
+          onPress={() => setActiveTab('chat')}
+        >
+          <Text style={[
+            styles.tabText, 
+            activeTab === 'chat' && styles.activeTabText,
+            colorScheme === 'dark' && styles.darkTabText,
+            colorScheme === 'dark' && activeTab === 'chat' && styles.darkActiveTabText
+          ]}>
+            Chats
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.tabButton, 
+            activeTab === 'resident' && styles.activeTab,
+            colorScheme === 'dark' && activeTab === 'resident' && styles.darkActiveTab
+          ]}
+          onPress={() => setActiveTab('resident')}
+        >
+          <Text style={[
+            styles.tabText, 
+            activeTab === 'resident' && styles.activeTabText,
+            colorScheme === 'dark' && styles.darkTabText,
+            colorScheme === 'dark' && activeTab === 'resident' && styles.darkActiveTabText
+          ]}>
+            Residents
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.flexContainer}>
+        {activeTab === 'chat' ? <ChatScreen /> : <ResidentScreen />}
+      </View>
+    </SafeAreaView>
+  );
+};
+
 const styles = StyleSheet.create({
-  containers: {
+  // Layout styles
+  flexContainer: {
     flex: 1,
-    flexDirection: 'row',
   },
-  container: {
+  loadingContainer: {
     flex: 1,
-    backgroundColor: '#f9f9f9',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+  flatListContent: {
+    paddingBottom: 10,
+  },
+
+  // Main container styles
+  container: { 
+    flex: 1, 
+    backgroundColor: '#f5f5f5'
+  },
+  darkContainer: {
+    backgroundColor: '#121212',
+  },
+
+  // Tab bar styles
+  tabBar: { 
+    flexDirection: 'row', 
     backgroundColor: 'white',
-    padding: 10,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width:0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    width:'100%',
+  },
+  darkTabBar: {
+    backgroundColor: '#1e1e1e',
   },
   tabButton: {
     flex: 1,
+    paddingVertical: 15,
     alignItems: 'center',
-    paddingVertical: 12,
-    marginHorizontal: 5,
-    borderRadius: 5,
   },
   activeTab: {
-    backgroundColor: '#005bb5',
+    borderBottomWidth: 2,
+    borderBottomColor: '#007AFF',
+  },
+  darkActiveTab: {
+    borderBottomColor: '#0a84ff',
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#333',
   },
+  darkTabText: {
+    color: '#e5e5e5',
+  },
   activeTabText: {
-    color: '#fff',
+    color: '#007AFF',
   },
-  content: {
-    flex: 1,
+  darkActiveTabText: {
+    color: '#0a84ff',
   },
-  blockTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-  },
-  card: {
-    backgroundColor: '#fff',
+
+  // Member card styles
+  memberCard: {
+    backgroundColor: 'white',
     padding: 15,
+    marginHorizontal: 10,
+    marginVertical: 5,
     borderRadius: 10,
-    marginVertical: 8,
-    elevation: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
   },
-  profileImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 15,
+  darkMemberCard: {
+    backgroundColor: '#1e1e1e',
   },
   memberInfo: {
     flex: 1,
   },
-  name: {
+  memberName: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '500',
     color: '#333',
   },
-  details: {
+  darkMemberName: {
+    color: '#e5e5e5',
+  },
+  memberDetails: {
     fontSize: 14,
     color: '#666',
     marginTop: 4,
   },
-  iconContainer: {
+  darkMemberDetails: {
+    color: '#999',
+  },
+  chatButton: {
+    padding: 8,
+  },
+
+  // Search bar styles
+  searchContainer: {
+    flexDirection: 'row',
+    padding: 10,
+    backgroundColor: 'white',
+    alignItems: 'center',
+  },
+  searchInputContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 15,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    marginRight: 10,
   },
-  iconButton: {
-    marginLeft: 12,
-    padding: 8,
-    borderRadius: 5,
-    justifyContent: 'center',
+  darkSearchInputContainer: {
+    backgroundColor: '#2a2a2a',
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    color: '#333',
+  },
+  darkSearchInput: {
+    color: '#e5e5e5',
+  },
+  blockFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#e6f2ff',
+    borderRadius: 10,
+  },
+  darkBlockFilterButton: {
+    backgroundColor: '#2a2a2a',
+  },
+  blockFilterText: {
+    color: '#007AFF',
+    fontWeight: '500',
+    marginRight: 4,
+  },
+
+  // Modal picker styles
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  blockPickerContainer: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    maxHeight: '50%',
+    paddingBottom: 20,
+  },
+  darkBlockPickerContainer: {
+    backgroundColor: '#1e1e1e',
+  },
+  blockPickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  darkBlockPickerHeader: {
+    borderBottomColor: '#2a2a2a',
+  },
+  blockPickerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  darkBlockPickerTitle: {
+    color: '#e5e5e5',
+  },
+  blockPickerCloseButton: {
+    padding: 4,
+  },
+  blockPickerItem: {
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  iconText: {
-    fontSize: 20,
-    color: '#005bb5',
+  darkBlockPickerItem: {
+    backgroundColor: '#1e1e1e',
   },
-  listContainer: {
-    paddingHorizontal: 10,
+  blockPickerItemSelected: {
+    backgroundColor: '#f5f5f5',
+  },
+  blockPickerItemText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  darkBlockPickerItemText: {
+    color: '#e5e5e5',
+  },
+  blockPickerItemTextSelected: {
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+
+  // Empty state styles
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+  },
+  darkEmptyText: {
+    color: '#999',
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
+  darkEmptySubText: {
+    color: '#666',
   },
   blockContainer: {
     flexDirection: 'column',

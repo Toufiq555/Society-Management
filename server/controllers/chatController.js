@@ -1,109 +1,84 @@
-const Chat = require("../models/chatModel");
-const Message = require("../models/message");
-const User = require("../models/userModel");
+const { getMessages, saveMessage } = require('../models/messageModel');
+const db = require('../config/db'); // Import your MySQL connection
 
-// ✅ Get all chats of a user (For Chat List)
-const getUserChats = async (req, res) => {
-  try {
-    const userId = req.params.userid;
+const chatController = {
+  // Get all chats for a specific user
+  getChats: async (req, res) => {
+    const { userId } = req.params;
+    try {
+      // A SQL query to retrieve chats for a user.
+      const query = `
+        SELECT c.id, c.user1_id, c.user2_id,
+               u1.name AS user1_name, u2.name AS user2_name,
+               m.message AS last_message,
+               m.timestamp AS last_message_timestamp
+        FROM chats c
+        JOIN member u1 ON c.user1_id = u1.id
+        JOIN member u2 ON c.user2_id = u2.id
+        LEFT JOIN messages m ON c.id = m.chat_id -- Get last message
+        WHERE c.user1_id = ? OR c.user2_id = ?
+        ORDER BY m.timestamp DESC;
+      `;
 
-    const chats = await Chat.find({ members: userId })
-      .populate("members", "name email")
-      .populate({
-        path: "lastMessage",
-        select: "message seen timestamp",
-      })
-      .sort({ updatedAt: -1 });
+      const [rows] = await db.execute(query, [userId, userId]);
+      res.status(200).json({ success: true, chats: rows });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
 
-    res.status(200).json({ success: true, chats });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Error fetching chats", error });
-  }
-};
-
-// ✅ Get messages in a chat
-const getMessages = async (req, res) => {
-  try {
+  // Get messages for a specific chat
+  getMessages: async (req, res) => {
     const { chatId } = req.params;
-
-    const messages = await Message.find({ chatId }).sort({ timestamp: 1 });
-
-    res.status(200).json({ success: true, messages });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Error fetching messages", error });
-  }
-};
-
-// ✅ Start or Get Chat
-const startChat = async (req, res) => {
-  try {
-    const { sender, receiver } = req.body;
-
-    let chat = await Chat.findOne({ members: { $all: [sender, receiver] } });
-
-    if (!chat) {
-      chat = new Chat({ members: [sender, receiver] });
-      await chat.save();
+    try {
+      const messages = await getMessages(chatId);
+      res.status(200).json({ success: true, messages });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
     }
+  },
 
-    res.status(200).json({ success: true, chat });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Error starting chat", error });
-  }
-};
-
-// ✅ Send a message
-const sendMessage = async (req, res) => {
-  try {
+  // Send a new message (via API - not used with Socket.IO in this simplified version)
+  sendMessage: async (req, res) => {
+    const { chatId } = req.params;
     const { sender, receiver, message } = req.body;
+    const timestamp = new Date();
 
-    let chat = await Chat.findOne({ members: { $all: [sender, receiver] } });
+    try {
+      await saveMessage(sender, receiver, message, timestamp, chatId); // Include chatId
+      res.status(201).json({ success: true, message: 'Message sent and saved', data: { sender, receiver, message, timestamp, chatId } });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
 
-    if (!chat) {
-      chat = new Chat({ members: [sender, receiver] });
-      await chat.save();
+ startChat: async (req, res) => {
+  const { userId1, userId2 } = req.body;
+  const stringUserId1 = String(userId1);
+  const stringUserId2 = String(userId2);
+
+  const sortedUserIds = [stringUserId1, stringUserId2].sort();
+  const potentialChatId = `chat_${sortedUserIds[0]}_${sortedUserIds[1]}`;
+
+  try {
+    const [existingChat] = await db.execute(
+      'SELECT id FROM chats WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)',
+      [stringUserId1, stringUserId2, stringUserId2, stringUserId1]
+    );
+
+    if (existingChat.length > 0) {
+      return res.status(200).json({ success: true, chatId: existingChat[0].id, message: 'Chat already exists' });
     }
 
-    const newMessage = new Message({ sender, receiver, message });
-    await newMessage.save();
-
-    chat.lastMessage = newMessage._id;
-    await chat.save();
-
-    res
-      .status(201)
-      .json({ success: true, message: "Message sent", newMessage });
+    const chatId = potentialChatId; // Use the generated ID as it's new
+    const query = `INSERT INTO chats (id, user1_id, user2_id) VALUES (?, ?, ?)`;
+    await db.execute(query, [chatId, stringUserId1, stringUserId2]);
+    res.status(200).json({ success: true, chatId });
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Error sending message", error });
+    console.error('Error starting chat:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
-};
+},
 
-// ✅ Mark messages as read
-const markMessagesAsRead = async (req, res) => {
-  try {
-    const { sender, receiver } = req.body;
-    await Message.updateMany({ sender, receiver, seen: false }, { seen: true });
-
-    res.status(200).json({ success: true, message: "Messages marked as read" });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Error updating messages", error });
-  }
 };
-
-module.exports = {
-  getUserChats,
-  getMessages,
-  startChat,
-  sendMessage,
-  markMessagesAsRead,
-};
+module.exports = chatController;

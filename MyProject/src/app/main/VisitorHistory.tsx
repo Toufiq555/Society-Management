@@ -1,7 +1,7 @@
 import React,{ useEffect, useState } from "react";
 import axios from "axios";
 import { View, Text, ActivityIndicator, FlatList } from "react-native";
-
+import { API_URL } from "@env";
 interface Visitor {
   id: number;
   name: string;
@@ -19,8 +19,8 @@ const VisitorHistory = () => {
   const fetchHistory = async () => {
     try {
       const [guestsResponse, deliveriesResponse] = await Promise.all([
-        axios.get("http://192.168.1.11:8080/api/v1/guests"),
-        axios.get("http://192.168.1.11:8080/api/v1/Deliveries"),
+        axios.get(`${API_URL}/api/v1/guests`),
+        axios.get(`${API_URL}/api/v1/deliveries`),
       ]);
 
       console.log("Guests API Response:", guestsResponse.data);

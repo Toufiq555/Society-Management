@@ -1,7 +1,9 @@
 # OSX
 #
 .DS_Store
-
+.env
+env.d.ts
+server/ServiceAccountKey.json
 # Xcode
 #
 build/

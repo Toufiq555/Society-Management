@@ -6,6 +6,7 @@ import {
   StyleSheet, ScrollView, 
   Alert
 } from "react-native";
+import { API_URL } from "@env";
 
 const buildings = ["Building A", "Building B", "Building C", "Building D", "Building E", "Building F"];
 const flats = ["101", "102", "103", "104", "201", "202", "203", "204", "301", "302", "303", "304"];
@@ -49,7 +50,7 @@ const AddDeliveryScreen = () => {
     
       try {
         console.log("Sending request to API...");
-        const response = await fetch("http://192.168.1.11:8080/api/v1/Deliveries", {
+        const response = await fetch(`${API_URL}/api/v1/Deliveries`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, mobile, building: selectedBuilding, flat: selectedFlat, vehicle: vehicleNumber,company:selectedCompany

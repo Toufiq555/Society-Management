@@ -1,4 +1,7 @@
+// const express = require("express");
+// const router = express.Router();
 const db = require("../config/db");
+
 
 // 🔹 ADD NOTICE (MySQL2 Raw Query)
 const addNotices = async (req, res) => {
@@ -34,11 +37,13 @@ const addNotices = async (req, res) => {
 
 // 🔹 GET ALL NOTICES
 const getNotices = async (req, res) => {
+  console.log("data",getNotices);
   try {
     const [rows] = await db.query(
       "SELECT * FROM notices ORDER BY created_at DESC"
     );
     res.json({ success: true, notices: rows });
+    console.log("data:-",res);
   } catch (error) {
     res.status(500).json({ success: false, message: "Database error" });
   }

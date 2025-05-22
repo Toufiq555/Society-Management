@@ -8,5 +8,6 @@ const {
 
 router.post("/add-notice", addNotices);
 router.get("/get-notice", getNotices);
-router.delete("/:id", deleteNotices);
+router.delete("/notices/:id", deleteNotices);
+
 module.exports = router;
