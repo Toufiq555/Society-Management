@@ -2,7 +2,7 @@ import React, {useState, useContext} from 'react';
 import {View, Text, TextInput, TouchableOpacity, Alert} from 'react-native';
 import axios from 'axios';
 import {AuthContext} from '../../../context/authContext';
-import {API_URL} from "@env";
+import {API_URL} from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = ({navigation}: any) => {
@@ -17,7 +17,7 @@ const LoginScreen = ({navigation}: any) => {
     }
 
     try {
-      console.log('API_URL:', API_URL); // Debugging API_URL
+      console.log('API_URL:', API_URL); // Debugging of API_URL
 
       // Make API call to send OTP
       const response = await axios.post(`${API_URL}/api/auth/login`, {

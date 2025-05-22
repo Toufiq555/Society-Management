@@ -27,7 +27,7 @@ const Profile = () => {
         console.log("AsyncStorage", phone);
 
         if (!phone) {
-          console.error('No, The phone number found in AsyncStorage!');
+          console.error('No, phone number found in AsyncStorage!');
           setLoading(false);
           return;
         }
@@ -37,7 +37,7 @@ console.log("API",API_URL);
 
         const members = response?.data?.members || [];
 
-console.log("All members:", members); // 👈 Add this line
+console.log("All  the members:", members); // 👈 Add this line to see member
 
         const userPhone = phone.trim();
 

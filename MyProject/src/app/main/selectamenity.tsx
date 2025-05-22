@@ -31,7 +31,7 @@ const SelectAmenity = () => {
 
   const fetchAmenities = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/v1/get-amenity`);
+      const res = await fetch(`${API_URL}/api/v1/amenities/get-amenity`);
       const data = await res.json();
       if (data.success && Array.isArray(data.amenities)) {
         setAmenities(data.amenities);
@@ -39,7 +39,7 @@ const SelectAmenity = () => {
         setAmenities([]);
       }
     } catch (error) {
-      console.error("Failed to fetch theamenities:", error);
+      console.error("Failed to fetch the theamenities:", error);
     } finally {
       setLoading(false);
     }
@@ -56,7 +56,7 @@ const SelectAmenity = () => {
     if (name.includes('tennis')) return 'tennis';
     if (name.includes('gym')) return 'dumbbell';
     if (name.includes('golf')) return 'golf';
-    return 'star'; // default icon
+    return 'star'; //A default icon
   };
 
   const filteredAmenities = amenities.filter(a =>

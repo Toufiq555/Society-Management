@@ -15,7 +15,7 @@ import {
   useRoute,
 } from '@react-navigation/native';
 import {AuthProvider, AuthContext} from '../../../context/authContext';
-import { API_URL } from '@env';
+import { API_URL } from "@env";
 
 type RouteParams = {
   phone: string;
@@ -29,7 +29,7 @@ const Otp = () => {
   const authContext = useContext(AuthContext);
 
   if (!authContext) {
-    return <Text>Loading...</Text>; // ✅ Prevent error if context is null
+    return <Text>Loading...</Text>; // ✅ Prevent the error if context is null
   }
 
   const {login} = authContext;

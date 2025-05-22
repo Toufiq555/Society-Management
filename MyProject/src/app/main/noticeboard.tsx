@@ -6,7 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { API_URL } from "@env";
+import { API_URL } from '@env';
 
 interface Notice {
   id: string;
@@ -17,23 +17,45 @@ interface Notice {
 }
 
 const NoticeBoard: React.FC = () => {
-  const [notices, setNotices] = useState<Notice[]>([]);
+   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
+  // const notices: Notice[] = [
+  //   {
+  //     id: '1',
+  //     title: 'Water Supply Maintenance',
+  //     description: 'Water supply will be unavailable on 15th May from 9 AM to 5 PM.',
+  //     created_at: '2025-05-10',
+  //   },
+  //   {
+  //     id: '2',
+  //     title: 'Annual General Meeting',
+  //     description: 'The AGM is scheduled for 20th May at 6 PM in the clubhouse.',
+  //     created_at: '2025-05-08',
+  //   },
+  //   {
+  //     id: '3',
+  //     title: 'Pest Control',
+  //     description: 'Pest control service will be conducted on 18th May. Please cooperate.',
+  //     created_at: '2025-05-09',
+  //   },
+  // ];
 
-  //fetch notice data
+  //fetch the notice data
   const fetchNotices = async () => {
     try {
       console.log("API",API_URL);
       const response = await fetch(
-       `${API_URL}/api/v1/get-notice`,
+       `${API_URL}/api/v1/notices/get-notice`,
       );
       console.log("network issue",response);
       const data = await response.json();
 
       if (data.success) {
         setNotices(data.notices);
+        console.log("set notice",data.notices);
       } else {
-        console.error('Error fetching notices:', data.message);
+      
+        console.error('Error fetching the notices:', data.message);
       }
     } catch (error) {
       console.error('Fetch error:', error);
@@ -64,7 +86,7 @@ const NoticeBoard: React.FC = () => {
           </View>
           <Text style={styles.description}>{item.description}</Text>
           <Text style={styles.footer}>
-            Post by : {item.created_at} {/* space*/}
+            Post by : {item.created_at} {/*The  space*/}
           </Text>
         </View>
       )}

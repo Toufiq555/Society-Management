@@ -1,17 +1,9 @@
-// routes/advertisementRoutes.js
-const express = require("express");
+const express = require('express');
 const router = express.Router();
+const { getAdvertisements, addAdvertisement, deleteAdvertisement } = require('../controllers/AdvertisementController'); // Adjust path
 
-const {
-  addAdvertisement,
-  getAdvertisements,
-  deleteAdvertisement,
-} = require("../controllers/AdvertisementController");
-
-
-
-router.post("/add-advertisement", addAdvertisement);
-router.get("/get-advertisements", getAdvertisements);
-router.delete("/advertisements/:id", deleteAdvertisement);
+router.get('/get-advertisements', getAdvertisements);
+router.post('/add-advertisement', addAdvertisement);
+router.delete('/advertisements/:id', deleteAdvertisement);
 
 module.exports = router;

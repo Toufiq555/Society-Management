@@ -20,7 +20,7 @@ import io from 'socket.io-client';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import MessageCard from '../../components/messagecard';
 import imagePaths from '../../constant/imagePaths';
-import { API_URL, SOCKET_URL } from '@env';
+import { API_URL, SOCKET_URL } from "@env";
 import { AuthContext } from '../../../context/authContext';
 
 const socket = io(SOCKET_URL);
@@ -60,7 +60,7 @@ const ChatScreen = () => {
       if (contentType && contentType.includes('text/html')) {
         const htmlResponse = await response.text();
         console.error('HTML response:', htmlResponse);
-        Alert.alert('Error', 'Received unexpected HTML response from the server');
+        Alert.alert('Error', 'Received the unexpected HTML response from the server');
         return;
       }
       
@@ -71,7 +71,7 @@ const ChatScreen = () => {
         Alert.alert('Error', jsonData.message || 'Failed to load chats');
       }
     } catch (error) {
-      console.error('Error fetching chats:', error);
+      console.error('Error fetching the chats:', error);
       Alert.alert('Error', 'Failed to connect to server');
     } finally {
       setLoading(false);

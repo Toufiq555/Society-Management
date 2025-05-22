@@ -31,7 +31,7 @@ import Getsupport from './main/getsupport';
 import Language from './main/language';
 import PrivacyPolicy from './main/policy';
 import Receipt from './main/receipt';
-import SelectAmenity from './main/selectamenity';
+
 import Selectpaymentmethod from './main/selectpaymentmethod';
 import Setting from './main/setting';
 import Terms from './main/terms';
@@ -44,9 +44,10 @@ import AddDeliveryScreen from './main/AddDeliveryScreen';
 import VisitorHistory from './main/VisitorHistory';
 import AddGuestScreen from './main/Addguest';
 import Security from './main/security';
-import AmenitiesScreen from './main/AmenitiesScreen';
+//import AmenitiesScreen from './main/AmenitiesScreen';
 import Bookamenities from './main/bookamenities';
 import BookAmenity from './main/bookamenity';
+import SelectAmenity from './main/selectamenity';
 
 
 const Stack = createStackNavigator();
@@ -154,7 +155,7 @@ const Stack = createStackNavigator();
             options={{headerShown: false}}
           />
           <Stack.Screen
-            name="Selectamenity"
+            name="SelectAmenity"
             component={SelectAmenity}
             options={{headerShown: false}}
           />
@@ -164,7 +165,7 @@ const Stack = createStackNavigator();
             options={{headerShown: false}}
           />
    
-   <Stack.Screen name="AmenitiesScreen" component={AmenitiesScreen} />
+   {/* <Stack.Screen name="AmenitiesScreen" component={AmenitiesScreen} /> */}
 <Stack.Screen name="BookAmenity" component={BookAmenity} />
 
 

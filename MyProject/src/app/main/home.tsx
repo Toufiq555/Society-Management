@@ -18,7 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { API_URL } from "@env";
 
-// ✅ TypeScript Interface for Member
+// ✅ TypeScript of Interface for the Member
 interface Member {
   phone: string;
   name?: string;
@@ -33,14 +33,14 @@ interface Ad {
   
 }
 
-// Feature Grid Icons and Labels - Keeping original functionality while updating appearance
+// Feature Grid Icons and Labels - Keeping  the original functionality while updating appearance
 const features = [
   { icon: "people-outline", label: "Members", screen: "Members" },
   { icon: "person-outline", label: "Visitors", screen: "Visitors" },
   { icon: "help-outline", label: "Help", screen: "Help" },
   { icon: "credit-card", label: "Payments", lib: "MaterialIcons", screen: "Payment" },
   { icon: "campaign", label: "Notice", lib: "MaterialIcons", screen: "Noticeboard" },
-  { icon: "build", label: "Amenities", lib: "MaterialIcons", screen: "Bookamenities" },
+  { icon: "build", label: "Amenities", lib: "MaterialIcons", screen: "SelectAmenity" },
   { icon: "chatbubbles", label: "Discussion", screen: "Discussion" },
   { icon: "help-outline", label: "Ask Society", screen: "AskSociety" },
   { icon: "support-agent", label: "Helpdesk", lib: "MaterialIcons", screen: "Helpdesk" },
@@ -112,7 +112,7 @@ const Home = () => {
 
   const fetchNotices = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/v1/get-notice`);
+      const response = await fetch(`${API_URL}/api/v1/notices/get-notice`);
       const data = await response.json();
       if (data.success && Array.isArray(data.notices)) {
         setNotices(data.notices);
@@ -124,7 +124,7 @@ const Home = () => {
 
   const fetchAds = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/v1/get-advertisements`);
+      const response = await fetch(`${API_URL}/api/v1/advertisements/get-advertisements`);
       console.log("fetch Ads:", response);
       
       const contentType = response.headers.get("content-type");
@@ -144,7 +144,7 @@ const Home = () => {
       setAds([]);  // Set empty array if no valid ads
     } catch (err) {
       console.error("Error fetching ads:", err);
-      setAds([]);  // Fallback to empty ads
+      setAds([]);  // Fallback to the empty ads
     }
   };
   
@@ -319,20 +319,15 @@ const Home = () => {
       <View style={styles.midFeatureGrid}>
         {features.slice(4, 8).map((item, index) => (
           <TouchableOpacity
-            key={index}
-            style={styles.featureItem}
-            onPress={() => navigation.navigate(item.screen)}
-          >
-            <View style={styles.iconContainer}>
-              <IconRenderer icon={item.icon} lib={item.lib} />
-            </View>
-            <Text style={styles.featureLabel}>
-              {index === 0 ? "Notice" : 
-               index === 1 ? "Amenities" : 
-               index === 2 ? "Discussion" : 
-               index === 3 ? "Payments" : item.label}
-            </Text>
-          </TouchableOpacity>
+    key={index}
+    style={styles.featureItem}
+    onPress={() => navigation.navigate(item.screen)}
+  >
+    <View style={styles.iconContainer}>
+      <IconRenderer icon={item.icon} lib={item.lib} />
+    </View>
+    <Text style={styles.featureLabel}>{item.label}</Text>
+  </TouchableOpacity>
         ))}
       </View>
 

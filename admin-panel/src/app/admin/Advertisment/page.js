@@ -9,7 +9,7 @@ export default function AdvertisementPage() {
   const [tableData, setTableData] = useState([]);
   const [imageFile, setImageFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const API_BASE_URL = "http://localhost:8080/api/v1";
+   const API_BASE_URL = "http://localhost:8080/api/v1/advertisements";
 
   const headers = ["ImageUrl", "CreatedAt", "Actions"];
 
@@ -18,26 +18,23 @@ export default function AdvertisementPage() {
   }, []);
 
   const fetchAdvertisements = async () => {
+    console.log("Fetching advertisements...");
     try {
       const response = await fetch(`${API_BASE_URL}/get-advertisements`);
-     // console.log("Fetch data:",response);
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.success) {
-          console.log("fetch Details:-",data.advertisements)
-          setTableData(data.advertisements);
-        } else {
-          console.error("Fetch error:", data.message);
-        }
-      } else {
-        console.error("Server response error");
-        alert("Failed to load advertisements.");
-      }
-    } catch (error) {
-      console.error("Fetch error:", error);
-      alert("An error occurred while fetching advertisements.");
+      const data = await response.json();
+      console.log("Fetch response:", data);
+     if (data.success && Array.isArray(data.advertisements)){
+      setTableData(data.advertisements);
+      console.log("Fetching Adevertisement:",data.advertisements);
+     }else{
+      console.error("Invalid API response",data);
+     setTableData([]);
     }
+  }
+  catch(error){
+    console.error("Error fetching advertisement",error);
+    setTableData([]);
+  }
   };
 
   const handleAddAd = async () => {
@@ -47,6 +44,7 @@ export default function AdvertisementPage() {
     }
 
     setIsUploading(true);
+    console.log("Uploading advertisement...");
 
     try {
       const formData = new FormData();
@@ -57,13 +55,17 @@ export default function AdvertisementPage() {
         body: formData,
       });
 
+      console.log("Upload response:", res);
       const result = await res.json();
+      console.log("Upload result:", result);
 
       if (res.ok && result?.success) {
+        console.log("Advertisement uploaded successfully. Calling fetchAdvertisements...");
         setImageFile(null);
         setIsModalOpen(false);
         alert("Advertisement uploaded successfully");
         fetchAdvertisements(); // refresh table
+        console.log("fetchAdvertisements() called.");
       } else {
         alert(result?.message || "Upload failed");
       }
@@ -76,12 +78,14 @@ export default function AdvertisementPage() {
   };
 
   const handleDeleteAd = async (id) => {
+    console.log("Deleting advertisement with ID:", id);
     try {
       const res = await fetch(`${API_BASE_URL}/advertisements/${id}`, {
         method: "DELETE",
       });
-
+      console.log("Delete response:", res);
       const result = await res.json();
+      console.log("Delete result:", result);
       if (res.ok && result.success) {
         fetchAdvertisements();
       } else {
@@ -94,7 +98,7 @@ export default function AdvertisementPage() {
   };
 
   const renderTableData = tableData.map((ad) => ({
-    id: ad.id, // ✅ Required for deletion  
+    id: ad.id, // ✅ Required for deletion
     ImageUrl: (
       <img
         src={ad.ImageUrl}
@@ -152,12 +156,11 @@ export default function AdvertisementPage() {
         }}
       >
         {tableData.length > 0 ? (
-         <TableComponent
-         headers={headers}
-         data={renderTableData}
-         onDelete={handleDeleteAd}
-       />
-       
+          <TableComponent
+            headers={headers}
+            data={renderTableData}
+            onDelete={handleDeleteAd}
+          />
         ) : (
           <div style={{ padding: "20px", textAlign: "center" }}>No advertisements found</div>
         )}

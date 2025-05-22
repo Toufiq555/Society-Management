@@ -1,119 +1,111 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import io from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 import { API_URL, SOCKET_URL } from "@env";
-import { AuthContext } from '../../../context/authContext';
-import { StackParamList } from '../../navigation/types';
 
 interface Message {
   id: string;
   sender_id: string;
   content: string;
   timestamp: string;
-  // Add the other properties
 }
 
-type MessageScreenRouteProp = RouteProp<StackParamList, 'MessageScreen'>;
+type MessageScreenRouteParams = {
+  userName: string;
+  userId: string;
+};
+
+type MessageScreenRouteProp = RouteProp<any, 'MessageScreen'>;
 
 const MessageScreen = () => {
   const route = useRoute<MessageScreenRouteProp>();
   const navigation = useNavigation();
-  const { userName, userId: otherUserId } = route.params;
-  const { user, loading: authLoading } = useContext(AuthContext); // Include loading state
-  console.log("MessageScreen - AuthContext user:", user);
-  const currentUserId = user?.userData?.id;
-  console.log("MessageScreen - currentUserId:", currentUserId);
+  const { userName, userId: otherUserId } = route.params as MessageScreenRouteParams;
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [chatId, setChatId] = useState(null);
-  const socket = io(SOCKET_URL);
-  const [loadingChatId, setLoadingChatId] = useState(true); // Add loading state for chatId
+  const [newMessageText, setNewMessageText] = useState('');
+  const [chatId, setChatId] = useState<string | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>('user123'); //  Get from auth
 
-  useEffect(() => {
+ useEffect(() => {
     const fetchOrCreateChatId = async () => {
-      setLoadingChatId(true); // Set loading to true before API call
+      if (!currentUserId || !otherUserId) return;
+
       try {
+        console.log('API_URL:', `${API_URL}/api/v1/chats`);
+console.log('Method:', 'POST');
+console.log('Headers:', { 'Content-Type': 'application/json' });
+console.log('Body:', JSON.stringify({ userId1: currentUserId, userId2: otherUserId }));
+
         const response = await fetch(`${API_URL}/api/v1/chats`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ userId1: currentUserId, userId2: otherUserId }),
+          body: JSON.stringify({ userId1: currentUserId, userId2: String(otherUserId) }), // Convert the otherUserId to a string
         });
         const data = await response.json();
-        console.log("fetchOrCreateChatId response:", data);
+
         if (data.success && data.chatId) {
           setChatId(data.chatId);
-        } else {
-          console.error('Failed to get or create chat ID:', data?.message);
-          // Handle error appropriately
         }
       } catch (error) {
         console.error('Error fetching/creating chat ID:', error);
-        // Handle error
-      } finally {
-        setLoadingChatId(false); // Set loading to false after API call completes
       }
     };
 
-    if (currentUserId && otherUserId) {
-      fetchOrCreateChatId();
-    } else {
-      setLoadingChatId(false); // If user IDs are not available
-    }
-
-    return () => {
-      socket.disconnect();
-    };
+    fetchOrCreateChatId();
   }, [currentUserId, otherUserId]);
+
 
   useEffect(() => {
     if (chatId) {
-      socket.connect();
-      socket.emit('joinChat', chatId);
+      const newSocket = io(SOCKET_URL);
+      setSocket(newSocket);
+
+      newSocket.emit('joinChat', chatId);
 
       const fetchMessages = async () => {
-        // ... your fetch messages logic
+        try {
+          const response = await fetch(`${API_URL}/api/v1/messages/${chatId}`); //  the Corrected route
+          const data = await response.json();
+          if (data.success) {
+            setMessages(data.messages);
+          }
+        } catch (error) {
+          console.error('Error fetching messages:', error);
+        }
       };
       fetchMessages();
 
-      const handleNewMessage = (newMessage: Message) => {
-        console.log("Frontend received newMessage:", newMessage);
-        setMessages((prevMessages) => [...prevMessages, newMessage]);
+      const handleNewMessage = (message: Message) => {
+        console.log("New message received", message);
+        setMessages((prevMessages) => [...prevMessages, message]);
       };
-      socket.on('newMessage', handleNewMessage);
+
+      newSocket.on('newMessage', handleNewMessage);
 
       return () => {
-        socket.off('newMessage', handleNewMessage);
+        newSocket.disconnect();
+        setSocket(null);
+        newSocket.off('newMessage', handleNewMessage);
       };
     }
-  }, [chatId, socket]);
+  }, [chatId]);
 
   const sendMessage = useCallback(() => {
-    console.log("sendMessage called. newMessage:", newMessage);
-    console.log("sendMessage called. chatId:", chatId);
-    console.log("sendMessage called. currentUserId:", currentUserId);
-    if (newMessage.trim() && chatId && currentUserId && otherUserId && !loadingChatId && !authLoading) { // ✅ Check loading states
-      socket.emit('sendMessage', {
+    if (newMessageText.trim() && chatId && currentUserId) {
+      socket?.emit('sendMessage', {
         sender: currentUserId,
         receiver: otherUserId,
-        message: newMessage,
+        message: newMessageText,
+        chatId: chatId, // Pass the chatId here
       });
-      setNewMessage('');
-    } else {
-      console.log("Could not send message. Conditions not met:", { newMessage, chatId, currentUserId, otherUserId, loadingChatId, authLoading });
+      setNewMessageText('');
     }
-  }, [newMessage, chatId, currentUserId, otherUserId, socket, loadingChatId, authLoading]); // Add loading states to dependency array
-
-  if (loadingChatId || authLoading || !currentUserId) {
-    return (
-      <View style={styles.container}>
-        <Text>Loading chat...</Text>
-      </View>
-    );
-  }
+  }, [newMessageText, chatId, currentUserId, otherUserId, socket]);
 
   const renderItem = ({ item }: { item: Message }) => (
     <View style={[
@@ -127,7 +119,6 @@ const MessageScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Display the userName at the top */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Icon name="chevron-back" size={24} color="#007AFF" />
@@ -137,22 +128,18 @@ const MessageScreen = () => {
       <FlatList
         data={messages}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+        keyExtractor={(item) => item.id}
         inverted
       />
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          value={newMessage}
-          onChangeText={setNewMessage}
+          value={newMessageText}
+          onChangeText={setNewMessageText}
           placeholder="Send a message..."
         />
-        <TouchableOpacity
-          style={styles.sendButton}
-          onPress={sendMessage}
-          disabled={loadingChatId || authLoading || !currentUserId}
-        >
-          <Icon name="send" size={24} color={loadingChatId || authLoading || !currentUserId ? '#ccc' : '#007AFF'} />
+        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+          <Icon name="send" size={24} color="#007AFF" />
         </TouchableOpacity>
       </View>
     </View>
