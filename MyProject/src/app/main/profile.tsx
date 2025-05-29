@@ -37,7 +37,7 @@ console.log("API",API_URL);
 
         const members = response?.data?.members || [];
 
-console.log("All  the members:", members); // 👈 Add this line to see member
+console.log("All  the members:", members); // 👈 Add this line to see the member in the societys
 
         const userPhone = phone.trim();
 

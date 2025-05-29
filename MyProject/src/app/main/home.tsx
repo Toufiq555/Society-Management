@@ -8,6 +8,7 @@ import {
   Image,
   FlatList,
   Modal,
+  StatusBar,
 } from "react-native";
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -95,12 +96,12 @@ const Home = () => {
           society: currentUser.society || "Unknown Society",
         });
         
-        // Get all societies this user belongs to (assuming a user can be in multiple societies)
+        // Get all the societies this user belongs to the(assuming a user can be in multiple societies)
         const userMemberships = members.filter(
           (m) => m.phone?.trim() === trimmedPhone && m.society
         );
         
-        // Extract unique societies
+        // Extract the unique societies
         const societies = [...new Set(userMemberships.map(m => m.society))].filter(Boolean) as string[];
         
         setUserSocieties(societies.length > 0 ? societies : [currentUser.society || "Unknown Society"]);
@@ -239,6 +240,7 @@ const Home = () => {
   
   return (
     <ScrollView style={styles.container}>
+      <StatusBar backgroundColor={"red"}/>
       {/* Header - Updated styling to match image while maintaining original structure */}
       <View style={styles.header}>
         <View>

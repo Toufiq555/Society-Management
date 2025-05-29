@@ -19,7 +19,7 @@ const LoginScreen = ({navigation}: any) => {
     try {
       console.log('API_URL:', API_URL); // Debugging of API_URL
 
-      // Make API call to send OTP
+      // Make the API call to send OTP
       const response = await axios.post(`${API_URL}/api/auth/login`, {
         phone,
       });

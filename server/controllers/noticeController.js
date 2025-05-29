@@ -43,7 +43,7 @@ const getNotices = async (req, res) => {
       "SELECT * FROM notices ORDER BY created_at DESC"
     );
     res.json({ success: true, notices: rows });
-    console.log("data:-",res);
+    
   } catch (error) {
     res.status(500).json({ success: false, message: "Database error" });
   }

@@ -184,15 +184,12 @@ const addAdvertisement = async (req, res) => {
 };
 
 const getAdvertisements = async (req, res) => {
-  console.log("getAdvertisements function called");
+  
   try {
-    console.log("Trying to query the database for advertisements");
+   
     const [rows] = await db.query("SELECT * FROM advertisements ORDER BY CreatedAt DESC");
-    console.log("Database query executed successfully. Result:", rows);
-
-    console.log("Sending JSON response with success and data");
     res.json({ success: true, advertisements: rows });
-    console.log("JSON response sent successfully");
+   
   } catch (err) {
     console.error("Error fetching advertisements:", err);
     console.log("Error occurred. Sending 500 status code and error message");

@@ -1,60 +1,36 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   FlatList,
   StyleSheet,
   ActivityIndicator,
+  StatusBar,
+  Platform,
+  SafeAreaView,
 } from 'react-native';
 import { API_URL } from '@env';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 interface Notice {
   id: string;
   title: string;
   description: string;
-  // postBy: string;
   created_at: string;
 }
 
 const NoticeBoard: React.FC = () => {
-   const [notices, setNotices] = useState<Notice[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
-  // const notices: Notice[] = [
-  //   {
-  //     id: '1',
-  //     title: 'Water Supply Maintenance',
-  //     description: 'Water supply will be unavailable on 15th May from 9 AM to 5 PM.',
-  //     created_at: '2025-05-10',
-  //   },
-  //   {
-  //     id: '2',
-  //     title: 'Annual General Meeting',
-  //     description: 'The AGM is scheduled for 20th May at 6 PM in the clubhouse.',
-  //     created_at: '2025-05-08',
-  //   },
-  //   {
-  //     id: '3',
-  //     title: 'Pest Control',
-  //     description: 'Pest control service will be conducted on 18th May. Please cooperate.',
-  //     created_at: '2025-05-09',
-  //   },
-  // ];
 
-  //fetch the notice data
   const fetchNotices = async () => {
     try {
-      console.log("API",API_URL);
-      const response = await fetch(
-       `${API_URL}/api/v1/notices/get-notice`,
-      );
-      console.log("network issue",response);
+      const response = await fetch(`${API_URL}/api/v1/notices/get-notice`);
       const data = await response.json();
 
       if (data.success) {
         setNotices(data.notices);
-        console.log("set notice",data.notices);
       } else {
-      
         console.error('Error fetching the notices:', data.message);
       }
     } catch (error) {
@@ -66,78 +42,113 @@ const NoticeBoard: React.FC = () => {
 
   useEffect(() => {
     fetchNotices();
+    if (Platform.OS === 'android') {
+      StatusBar.setBackgroundColor('black');
+    }
+    StatusBar.setBarStyle('light-content');
   }, []);
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString(undefined, {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
 
   if (loading) {
     return (
-      <ActivityIndicator size="large" color="#007aff" style={styles.loader} />
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color="#007aff" />
+      </View>
     );
   }
 
   return (
-    <FlatList
-      data={notices}
-      keyExtractor={item => item.id}
-      renderItem={({item}) => (
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.title}>{item.title}</Text>
-            {/* {item.isNew && <Text style={styles.newTag}>New</Text>} */}
-          </View>
-          <Text style={styles.description}>{item.description}</Text>
-          <Text style={styles.footer}>
-            Post by : {item.created_at} {/*The  space*/}
-          </Text>
-        </View>
-      )}
-      contentContainerStyle={styles.listContainer}
-    />
+    <SafeAreaView style={styles.safeArea}>
+    <StatusBar
+    
+    backgroundColor="black"
+    barStyle="light-content"
+  />
+  
+      <View style={styles.container}>
+        <Text style={styles.header}>Notices</Text>
+        <FlatList
+          data={notices}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Text style={styles.title}>{item.title}</Text>
+              <Text style={styles.description}>{item.description}</Text>
+              <View style={styles.dateTimeRow}>
+                <Ionicons name="calendar-outline" size={16} color="#888" />
+                <Text style={styles.dateText}>{formatDateTime(item.created_at)}</Text>
+              </View>
+            </View>
+          )}
+        />
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'black',
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#f4f7fb',
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: '700',
+    textAlign: 'left',
+    paddingVertical: 1,
+    paddingHorizontal: 16,
+    color: '#222',
+  },
   listContainer: {
-    padding: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    elevation: 3,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 5,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   title: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  newTag: {
-    fontSize: 12,
-    color: '#fff',
-    backgroundColor: '#007aff',
-    borderRadius: 5,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#222',
   },
   description: {
-    fontSize: 14,
-    color: '#666',
-    marginVertical: 5,
+    fontSize: 15,
+    color: '#444',
+    marginVertical: 10,
+    lineHeight: 20,
   },
-  footer: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingTop: 3,
-    justifyContent: 'space-between',
+  dateTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dateText: {
+    fontSize: 13,
+    color: '#666',
+    marginLeft: 4,
   },
   loader: {
     flex: 1,

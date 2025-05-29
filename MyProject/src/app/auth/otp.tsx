@@ -29,7 +29,7 @@ const Otp = () => {
   const authContext = useContext(AuthContext);
 
   if (!authContext) {
-    return <Text>Loading...</Text>; // ✅ Prevent the error if context is null
+    return <Text>Loading...</Text>; // ✅ Prevent the error if the context is null
   }
 
   const {login} = authContext;

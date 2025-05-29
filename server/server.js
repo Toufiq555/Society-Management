@@ -40,16 +40,21 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Routes
+
+
 app.use("/api/v1/members", members);
 app.use("/api/v1/guests", guestRoutes);
 app.use("/api/v1/Deliveries", DeliveryRoutes);
 app.use("/api/v1/amenities", AmenitiesRoutes);
+// app.use("/api/v1/amenities/booked-slots",AmenitiesRoutes);
 
 app.use('/api/v1/chats', chatRoutes);
+
 app.use("/api/v1/notices", noticeRoutes);
 app.use("/api/v1/advertisements", AdvertisementRoutes);
 app.use("/api/v1/auth", userRoutes);
 app.use("/api/auth", authRoutes);
+
 
 const PORT = process.env.PORT || 8080;
 

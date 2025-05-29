@@ -2,6 +2,7 @@ const db = require("../config/db"); // mysql connection
 const { sendOTPPhone } = require("../helpers/twilioHelper");
 const jwt = require("jsonwebtoken");
 
+
 const generateAdminOTP = async (req, res) => {
   const { phone } = req.body;
   if (!phone) {
